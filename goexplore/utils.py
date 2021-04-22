@@ -28,11 +28,11 @@ def prettysize(obj, delimiter=' ', separator=True):
 def makecellfn(width=11, height=8, interpolation=cv2.INTER_AREA, grayscale=True, intensities=8):
     divideby = 256 // intensities
 
-    def cellfn(frame):
+    def cellfn(x):
         if grayscale:
-            cell = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        cell = cv2.resize(cell, (width, height), interpolation = interpolation)
-        cell = cell // divideby
-        return cell
+            x = cv2.cvtColor(x, cv2.COLOR_RGB2GRAY)
+        x = cv2.resize(x, (width, height), interpolation = interpolation)
+        x = x // divideby
+        return x
 
     return cellfn

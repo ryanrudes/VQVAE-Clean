@@ -5,13 +5,13 @@ import cv2
 
 iterations = 1000000
 
-env = Qbert()
+env = MontezumaRevenge()
 goexplore = GoExplore(env)
 
 width = 11
 height = 8
 interpolation = cv2.INTER_AREA
-grayscale = True
+grayscale = False
 intensities = 8
 
 cellfn = makecellfn(width, height, interpolation, grayscale, intensities)
