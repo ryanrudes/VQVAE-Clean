@@ -2,13 +2,10 @@ from goexplore.algorithm import GoExplore
 from goexplore.wrappers import *
 from tqdm import tqdm
 
+iterations = 1000
+
 env = Qbert()
-goexplore = GoExplore(env, return_via = 'trajectory')
+goexplore = GoExplore(env, method = 'trajectory', repeat = 0.9)
 
 goexplore.initialize()
-
-while True:
-    checkpoint_reached = goexplore.run(render = True) # goexplore.iterations % 100 == 0)
-    if checkpoint_reached:
-        # print (goexplore.report())
-        print (goexplore.status())
+goexplore.run_for(iterations)

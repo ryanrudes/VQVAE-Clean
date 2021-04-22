@@ -1,4 +1,5 @@
 from .termination import *
+from .exceptions import *
 from .wrappers import *
 from .weights import *
 from .config import *
@@ -7,11 +8,15 @@ from .utils import *
 from .cell import *
 from .tree import *
 
+from rich.traceback import install
+from rich.progress import *
+install()
+
 from collections import defaultdict
 import numpy as np
 
 class GoExplore:
-    metadata = {'return_via': ['ram', 'trajectory']}
+    metadata = {'method': ['ram', 'trajectory']}
 
     def __init__(self,
                  env,
@@ -19,19 +24,23 @@ class GoExplore:
                  hashfn=hashfn,
                  repeat=0.95,
                  nsteps=100,
-                 return_via='ram'):
+                 method='ram'):
         self.env = env
         self.cellfn = cellfn
         self.hashfn = hashfn
         self.repeat = repeat
         self.nsteps = nsteps
-        self.report = lambda: "Iterations: %d, Cells: %d, Frames: %d, Max Reward: %d" % (self.iterations, len(self.record), self.frames, self.highscore)
-        self.status = lambda delimiter=' ', separator=True: "Archive: %s, Trajectory: %s" % (prettysize(self.record, delimiter=delimiter, separator=separator), prettysize(self.trajectory, delimiter=delimiter, separator=separator))
+        self.method = method
+        self.report = lambda: 'Iterations: %d, Cells: %d, Frames: %d, Max Reward: %d' % (self.iterations, len(self.record), self.frames, self.highscore)
+        self.status = lambda delimiter=' ', separator=True: 'Archive: %s, Trajectory: %s' % (prettysize(self.record, delimiter=delimiter, separator=separator), prettysize(self.trajectory, delimiter=delimiter, separator=separator))
 
-        if return_via in self.metadata['return_via']:
-            self.return_via = return_via
-        else:
-            raise ValueError('Expected return method `return_via` to be one of %s, but found %s' % ('/'.join(self.metadata['return_via']), return_via))
+        ensure_type(repeat, float, 'repeat', 'action repeat probability')
+        ensure_range(repeat, float, 'repeat', 'action repeat probability', 0, 1)
+
+        ensure_type(nsteps, int, 'nsteps', 'max explore duration')
+        ensure_range(nsteps, int, 'nsteps', 'max explore duration', minn=1)
+
+        ensure_from(method, self.metadata['method'], 'method', 'return method')
 
     def ram(self):
         return self.env.env.clone_full_state()
@@ -43,7 +52,7 @@ class GoExplore:
         self.trajectory.set(cell.node)
         self.env.reset()
 
-        if self.return_via == 'ram':
+        if self.method == 'ram':
             self.env.env.restore_full_state(ram)
         else:
             trajectory = self.trajectory.get_trajectory()
@@ -56,7 +65,7 @@ class GoExplore:
 
     def getstate(self):
         return (
-            self.ram() if self.return_via == 'ram' else None,
+            self.ram() if self.method == 'ram' else None,
             self.reward,
             self.length,
         )
@@ -147,3 +156,22 @@ class GoExplore:
         self.restore_code = restore_code
 
         return checkpoint_reached
+
+    def run_for(self, iterations, verbose=1, renderfn=lambda iteration: False, delimiter=' ', separator=True):
+        progress = Progress(
+            SpinnerColumn(),
+            "[progress.description]{task.description}",
+            BarColumn(),
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            TimeRemainingColumn(),
+        )
+
+        ensure_type(verbose, int, 'verbose', 'logging verbosity')
+        ensure_range(verbose, int, 'verbose', 'logging verbosity', 0, 2)
+
+        with progress:
+            for iteration in progress.track(range(iterations), description = 'Running'):
+                render = renderfn(iteration)
+                checkpoint_reached = self.run(render)
+                if verbose >= 1: progress.console.print (self.report())
+                if verbose == 2: progress.console.print (self.status(delimeter=delimeter, separator=separator))
