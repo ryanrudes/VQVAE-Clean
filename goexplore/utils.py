@@ -1,5 +1,5 @@
+from pympler.asizeof import asizeof
 from textwrap import wrap
-from sys import getsizeof
 import cv2
 
 units = ["B", "KB", "MB", "GB", "TB", "PB"]
@@ -14,7 +14,7 @@ def hashfn(cell):
     return hash(cell.data.tobytes())
 
 def prettysize(obj, delimiter=' ', separator=True):
-    size = getsizeof(obj)
+    size = asizeof(obj)
     size = str(size)
     pad = len(size) % 3
     if pad:
