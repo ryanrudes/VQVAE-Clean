@@ -13,6 +13,7 @@ from rich.progress import *
 install()
 
 from collections import defaultdict
+from time import sleep
 import numpy as np
 
 class GoExplore:
@@ -129,7 +130,7 @@ class GoExplore:
 
         return False, new_highscore
 
-    def run(self, render=False):
+    def run(self, render=False, debug=True, delay=0.01):
         self.discovered = 0
         checkpoint_reached = False
 
@@ -138,6 +139,8 @@ class GoExplore:
             checkpoint_reached |= new_highscore
             if terminal:
                 break
+            if debug:
+                sleep(delay)
 
         if self.discovered:
             self.record[self.restore_code].lead_to_improvement()
@@ -156,7 +159,7 @@ class GoExplore:
 
         return checkpoint_reached
 
-    def run_for(self, iterations, verbose=1, renderfn=lambda iteration: False, delimiter=' ', separator=True):
+    def run_for(self, iterations, verbose=1, renderfn=lambda iteration: False, delimiter=' ', separator=True, debug=True, delay=0.01):
         progress = Progress(
             SpinnerColumn(),
             "[progress.description]{task.description}",
@@ -171,6 +174,6 @@ class GoExplore:
         with progress:
             for iteration in progress.track(range(iterations), description = 'Running'):
                 render = renderfn(iteration)
-                checkpoint_reached = self.run(render)
+                checkpoint_reached = self.run(render, debug=debug, delay=delay)
                 if verbose >= 1: progress.console.print (self.report())
                 if verbose == 2: progress.console.print (self.status(delimeter=delimeter, separator=separator))

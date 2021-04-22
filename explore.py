@@ -16,4 +16,4 @@ intensities = 8
 
 cellfn = makecellfn(width, height, interpolation, grayscale, intensities)
 goexplore.initialize(method = 'trajectory', cellfn = cellfn)
-goexplore.run_for(iterations)
+goexplore.run_for(iterations, renderfn = lambda iteration: True, debug = True)
