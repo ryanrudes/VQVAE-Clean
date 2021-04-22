@@ -1,10 +1,11 @@
 class TreeNode:
-    def __init__(self, root, code):
+    def __init__(self, root, code, action):
         self.root = root
+        self.action = action
         self.children = {}
 
     def add(self, action, code):
-        node = TreeNode(self, code)
+        node = TreeNode(self, code, action)
         self.children[action] = node
         return node
 
@@ -16,7 +17,7 @@ class TreeNode:
 
 class LinkedTree:
     def __init__(self, root_code):
-        self.root = TreeNode(None, root_code)
+        self.root = TreeNode(None, root_code, None)
         self.node = self.root
 
     def act(self, action, code):
@@ -27,3 +28,11 @@ class LinkedTree:
 
     def set(self, node):
         self.node = node
+
+    def get_trajectory(self):
+        temp = self.node
+        trajectory = []
+        while not temp.action is None:
+            trajectory.append(temp.action)
+            temp = temp.root
+        return trajectory

@@ -11,12 +11,15 @@ from collections import defaultdict
 import numpy as np
 
 class GoExplore:
+    metadata = {'return_via': ['ram', 'trajectory']}
+
     def __init__(self,
                  env,
                  cellfn=cellfn,
                  hashfn=hashfn,
                  repeat=0.95,
-                 nsteps=100):
+                 nsteps=100,
+                 return_via='ram'):
         self.env = env
         self.cellfn = cellfn
         self.hashfn = hashfn
@@ -25,23 +28,35 @@ class GoExplore:
         self.report = lambda: "Iterations: %d, Cells: %d, Frames: %d, Max Reward: %d" % (self.iterations, len(self.record), self.frames, self.highscore)
         self.status = lambda delimiter=' ', separator=True: "Archive: %s, Trajectory: %s" % (prettysize(self.record, delimiter=delimiter, separator=separator), prettysize(self.trajectory, delimiter=delimiter, separator=separator))
 
+        if return_via in self.metadata['return_via']:
+            self.return_via = return_via
+        else:
+            raise ValueError('Expected return method `return_via` to be one of %s, but found %s' % ('/'.join(self.metadata['return_via']), return_via))
+
     def ram(self):
         return self.env.env.clone_full_state()
 
     def restore(self, cell):
         ram, reward, length = cell.choose()
-        self.env.reset()
-        self.env.env.restore_full_state(ram)
         self.reward = reward
         self.length = length
         self.trajectory.set(cell.node)
+        self.env.reset()
+
+        if self.return_via == 'ram':
+            self.env.env.restore_full_state(ram)
+        else:
+            trajectory = self.trajectory.get_trajectory()
+            while trajectory:
+                action = trajectory.pop()
+                self.env.step(action)
 
     def random(self):
         return self.env.action_space.sample()
 
     def getstate(self):
         return (
-            self.ram(),
+            self.ram() if self.return_via == 'ram' else None,
             self.reward,
             self.length,
         )
