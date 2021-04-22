@@ -4,7 +4,7 @@ from goexplore.wrappers import *
 from goexplore.utils import *
 import cv2
 
-iterations = 1000
+iterations = 100000
 
 env = Qbert()
 goexplore = GoExplore(env)
