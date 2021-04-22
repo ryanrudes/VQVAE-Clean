@@ -3,19 +3,17 @@ from goexplore.wrappers import *
 from goexplore.utils import *
 import cv2
 
-iterations = 1000000
+iterations = 1000
 
 env = Qbert()
 goexplore = GoExplore(env)
 
-width = 11
-height = 8
 interpolation = cv2.INTER_AREA
 grayscale = True
 intensities = 8
 
-cellfn = makecellfn(width, height, interpolation, grayscale, intensities)
-goexplore.initialize(method = 'ram', cellfn = cellfn)
-
-for cell in goexplore.run_for(iterations, return_cells = True, renderfn = lambda iteration: True):
-    pass
+for width in range(1, 12):
+    for height in range(1, 12):
+        cellfn = makecellfn(width, height, interpolation, grayscale, intensities)
+        goexplore.initialize(method = 'ram', cellfn = cellfn)
+        goexplore.run_for(iterations, verbose = 0)

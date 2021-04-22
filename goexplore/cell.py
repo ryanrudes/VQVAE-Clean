@@ -41,7 +41,7 @@ class Cell:
         self.ram, self.reward, self.length = state
         self.reset_selection_counts()
 
-    def lead_to_improvement(self):
+    def led_to_improvement(self):
         self.times_chosen_since_new = 0
         self.reset_selection_counts()
 
