@@ -105,20 +105,17 @@ class GoExplore:
         self.reward += reward
         self.length += 1
         self.frames += 1
-
-        new_highscore = False
-        if self.reward > self.highscore:
-            self.highscore = self.reward
-            new_highscore = True
+        self.highscore = max(self.highscore, self.reward)
 
         if render:
             self.env.render()
 
         if terminal:
-            return True, new_highscore
+            return True, None
 
         cell = self.cellfn(observation)
         code = self.hashfn(cell)
+        save = cell
         cell = self.record[code]
 
         self.trajectory.act(self.action, code)
@@ -128,17 +125,16 @@ class GoExplore:
             cell.setstate(self.getstate())
             self.discovered += 1
 
-        return False, new_highscore
+        return False, save
 
     def run(self, render=False, debug=True, delay=0.01):
         self.discovered = 0
-        checkpoint_reached = False
 
         for i in range(self.nsteps):
-            terminal, new_highscore = self.act(render)
-            checkpoint_reached |= new_highscore
+            terminal, cell = self.act(render)
             if terminal:
                 break
+            yield cell
             if debug:
                 sleep(delay)
 
@@ -157,8 +153,6 @@ class GoExplore:
         self.restore(restore_cell)
         self.restore_code = restore_code
 
-        return checkpoint_reached
-
     def run_for(self, iterations, verbose=1, renderfn=lambda iteration: False, delimiter=' ', separator=True, debug=False, delay=0.01):
         progress = Progress(
             SpinnerColumn(),
@@ -174,6 +168,6 @@ class GoExplore:
         with progress:
             for iteration in progress.track(range(iterations), description = 'Running'):
                 render = renderfn(iteration)
-                checkpoint_reached = self.run(render, debug=debug, delay=delay)
+                yield from self.run(render, debug=debug, delay=delay)
                 if verbose >= 1: progress.console.print (self.report())
                 if verbose == 2: progress.console.print (self.status(delimeter=delimeter, separator=separator))
