@@ -13,6 +13,7 @@ from rich.progress import *
 install()
 
 from collections import defaultdict
+from sys import getsizeof
 from time import sleep
 import numpy as np
 
@@ -22,7 +23,7 @@ class GoExplore:
     def __init__(self, env):
         self.env = env
         self.report = lambda: 'Iterations: %d, Cells: %d, Frames: %d, Max Reward: %d' % (self.iterations, len(self.record), self.frames, self.highscore)
-        self.status = lambda delimiter=' ', separator=True: 'Archive: %s, Trajectory: %s' % (prettysize(self.record, delimiter=delimiter, separator=separator), prettysize(self.trajectory, delimiter=delimiter, separator=separator))
+        self.status = lambda delimiter=' ', separator=True: 'Archive: %s, Trajectory: %s' % (prettysize(self.record, delimiter=delimiter, separator=separator, sizefn=getsizeof), prettysize(self.trajectory, delimiter=delimiter, separator=separator))
 
     def ram(self):
         return self.env.env.clone_full_state()

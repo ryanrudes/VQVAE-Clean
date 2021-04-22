@@ -13,8 +13,8 @@ def cellfn(frame):
 def hashfn(cell):
     return hash(cell.data.tobytes())
 
-def prettysize(obj, delimiter=' ', separator=True):
-    size = asizeof(obj)
+def prettysize(obj, delimiter=' ', separator=True, sizefn=asizeof):
+    size = sizefn(obj)
     size = str(size)
     pad = len(size) % 3
     if pad:
