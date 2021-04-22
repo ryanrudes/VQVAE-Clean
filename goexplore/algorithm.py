@@ -170,5 +170,7 @@ class GoExplore:
             for iteration in progress.track(range(iterations), description = 'Running'):
                 render = renderfn(iteration)
                 self.run(render, debug=debug, delay=delay)
-                if verbose >= 1: progress.console.print (self.report())
-                if verbose == 2: progress.console.print (self.status(delimeter, separator))
+                if verbose == 1:
+                    progress.console.print(self.report())
+                elif verbose == 2:
+                    progress.console.print(self.report() + ', ' + self.status(delimeter, separator))
