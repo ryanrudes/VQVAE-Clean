@@ -170,4 +170,4 @@ class GoExplore:
                 render = renderfn(iteration)
                 self.run(render, debug=debug, delay=delay)
                 if verbose >= 1: progress.console.print (self.report())
-                if verbose == 2: progress.console.print (self.status(delimeter=delimeter, separator=separator))
+                if verbose == 2: progress.console.print (self.status(delimeter, separator))
