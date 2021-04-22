@@ -2,10 +2,10 @@ from goexplore.algorithm import GoExplore
 from goexplore.wrappers import *
 from tqdm import tqdm
 
-iterations = 1000
+iterations = 1000000
 
-env = Qbert()
-goexplore = GoExplore(env, method = 'trajectory', repeat = 0.9)
+env = Pong()
+goexplore = GoExplore(env)
 
-goexplore.initialize()
+goexplore.initialize(method = 'trajectory')
 goexplore.run_for(iterations)

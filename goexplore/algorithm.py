@@ -18,29 +18,10 @@ import numpy as np
 class GoExplore:
     metadata = {'method': ['ram', 'trajectory']}
 
-    def __init__(self,
-                 env,
-                 cellfn=cellfn,
-                 hashfn=hashfn,
-                 repeat=0.95,
-                 nsteps=100,
-                 method='ram'):
+    def __init__(self, env):
         self.env = env
-        self.cellfn = cellfn
-        self.hashfn = hashfn
-        self.repeat = repeat
-        self.nsteps = nsteps
-        self.method = method
         self.report = lambda: 'Iterations: %d, Cells: %d, Frames: %d, Max Reward: %d' % (self.iterations, len(self.record), self.frames, self.highscore)
         self.status = lambda delimiter=' ', separator=True: 'Archive: %s, Trajectory: %s' % (prettysize(self.record, delimiter=delimiter, separator=separator), prettysize(self.trajectory, delimiter=delimiter, separator=separator))
-
-        ensure_type(repeat, float, 'repeat', 'action repeat probability')
-        ensure_range(repeat, float, 'repeat', 'action repeat probability', 0, 1)
-
-        ensure_type(nsteps, int, 'nsteps', 'max explore duration')
-        ensure_range(nsteps, int, 'nsteps', 'max explore duration', minn=1)
-
-        ensure_from(method, self.metadata['method'], 'method', 'return method')
 
     def ram(self):
         return self.env.env.clone_full_state()
@@ -70,7 +51,25 @@ class GoExplore:
             self.length,
         )
 
-    def initialize(self):
+    def initialize(self,
+                   cellfn=cellfn,
+                   hashfn=hashfn,
+                   repeat=0.95,
+                   nsteps=100,
+                   method='ram'):
+        self.cellfn = cellfn
+        self.hashfn = hashfn
+        self.repeat = repeat
+        self.nsteps = nsteps
+        self.method = method
+
+        ensure_type(repeat, float, 'repeat', 'action repeat probability')
+        ensure_range(repeat, float, 'repeat', 'action repeat probability', 0, 1)
+
+        ensure_type(nsteps, int, 'nsteps', 'max explore duration')
+        ensure_range(nsteps, int, 'nsteps', 'max explore duration', minn=1)
+        ensure_from(method, self.metadata['method'], 'method', 'return method')
+
         observation = self.env.reset()
 
         cell = self.cellfn(observation)
