@@ -11,7 +11,7 @@ goexplore = GoExplore(env)
 width = 11
 height = 8
 interpolation = cv2.INTER_AREA
-grayscale = False
+grayscale = True
 intensities = 8
 
 cellfn = makecellfn(width, height, interpolation, grayscale, intensities)
