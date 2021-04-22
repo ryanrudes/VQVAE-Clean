@@ -57,6 +57,7 @@ class GoExplore:
                    hashfn=hashfn,
                    repeat=0.95,
                    nsteps=100,
+                   seed=42,
                    method='ram'):
         self.cellfn = cellfn
         self.hashfn = hashfn
@@ -71,6 +72,7 @@ class GoExplore:
         ensure_range(nsteps, int, 'nsteps', 'max explore duration', minn=1)
         ensure_from(method, self.metadata['method'], 'method', 'return method')
 
+        self.env.seed(seed)
         observation = self.env.reset()
 
         cell = self.cellfn(observation)
