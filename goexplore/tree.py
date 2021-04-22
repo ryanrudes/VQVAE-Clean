@@ -8,18 +8,14 @@ class TreeNode:
 
     def __sizeof__(self):
         total = 0
-        objects = [self.root, self.action, self.children]
-        while objects:
-            object = objects.pop()
+        stack = [self.root, self.action, self.children]
+        while stack:
+            object = stack.pop()
             if isinstance(object, TreeNode):
-                total += size(id(object.root))
-                objects.append(object.action)
-                for child in object.children.values():
-                    objects.append(child)
+                stack.extend([id(object.root), object.action, object.children])
             elif isinstance(object, dict):
                 for key, value in object.items():
-                    total += size(key) + size(id(value))
-                    objects.append(value)
+                    stack.extend([key, id(value), value])
             else:
                 total += size(object)
         return total

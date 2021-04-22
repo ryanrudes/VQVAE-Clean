@@ -1,6 +1,7 @@
 from .termination import *
 from .exceptions import *
 from .wrappers import *
+from .archive import *
 from .weights import *
 from .config import *
 from .powers import *
@@ -79,7 +80,7 @@ class GoExplore:
         cell = self.cellfn(observation)
         code = self.hashfn(cell)
 
-        self.record = defaultdict(Cell)
+        self.record = Archive()
         self.reward = 0
         self.action = 0
         self.length = 0
