@@ -1,4 +1,4 @@
-from pympler.asizeof import asizeof
+from sys import getsizeof
 from textwrap import wrap
 import cv2
 
@@ -13,7 +13,7 @@ def cellfn(frame):
 def hashfn(cell):
     return hash(cell.data.tobytes())
 
-def prettysize(obj, delimiter=' ', separator=True, sizefn=asizeof):
+def prettysize(obj, delimiter=' ', separator=True, sizefn=getsizeof):
     size = sizefn(obj)
     size = str(size)
     pad = len(size) % 3
@@ -22,7 +22,7 @@ def prettysize(obj, delimiter=' ', separator=True, sizefn=asizeof):
     size = wrap(size, 3)
     text = []
     for value, unit in zip(size, reversed(units[:len(size)])):
-        text.append(value.lstrip() + ' ' * int(separator) + unit)
+        text.append(value.lstrip(' ').lstrip('0') + ' ' * int(separator) + unit)
     return delimiter.join(text)
 
 def makecellfn(width=11, height=8, interpolation=cv2.INTER_AREA, grayscale=True, intensities=8):
