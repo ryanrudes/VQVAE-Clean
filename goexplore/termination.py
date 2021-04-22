@@ -19,7 +19,7 @@ class TerminateOnNegativeReward(TerminalCondition):
         super().__init__()
 
     def isterminal(self, reward, terminal, info):
-        return terminal | reward < 0
+        return terminal or reward < 0
 
 class TerminalConditionGroup(TerminalCondition):
     def __init__(self, conditions):
