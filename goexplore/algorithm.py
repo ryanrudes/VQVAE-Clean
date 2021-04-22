@@ -28,6 +28,7 @@ class GoExplore:
 
     def restore(self, cell):
         ram, reward, length = cell.choose()
+        self.env.reset()
         self.env.env.restore_full_state(ram)
         self.reward = reward
         self.length = length
