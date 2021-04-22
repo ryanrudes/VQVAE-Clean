@@ -1,11 +1,19 @@
 from goexplore.algorithm import GoExplore
 from goexplore.wrappers import *
-from tqdm import tqdm
+from goexplore.utils import *
+import cv2
 
 iterations = 1000000
 
-env = Pong()
+env = Qbert()
 goexplore = GoExplore(env)
 
-goexplore.initialize(method = 'trajectory')
+width = 11
+height = 8
+interpolation = cv2.INTER_AREA
+grayscale = True
+intensities = 8
+
+cellfn = makecellfn(width, height, interpolation, grayscale, intensities)
+goexplore.initialize(method = 'trajectory', cellfn = cellfn)
 goexplore.run_for(iterations)

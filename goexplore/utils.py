@@ -24,3 +24,15 @@ def prettysize(obj, delimiter=' ', separator=True):
     for value, unit in zip(size, reversed(units[:len(size)])):
         text.append(value.lstrip() + ' ' * int(separator) + unit)
     return delimiter.join(text)
+
+def makecellfn(width=11, height=8, interpolation=cv2.INTER_AREA, grayscale=True, intensities=8):
+    divideby = 256 // intensities
+
+    def cellfn(frame):
+        if grayscale:
+            cell = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        cell = cv2.resize(cell, (width, height), interpolation = interpolation)
+        cell = cell // divideby
+        return cell
+
+    return cellfn
