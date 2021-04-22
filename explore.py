@@ -17,5 +17,5 @@ intensities = 8
 cellfn = makecellfn(width, height, interpolation, grayscale, intensities)
 goexplore.initialize(method = 'ram', cellfn = cellfn)
 
-for cell in goexplore.run_for(iterations, renderfn = lambda iteration: True):
+for cell in goexplore.run_for(iterations, return_cells = True, renderfn = lambda iteration: True):
     pass

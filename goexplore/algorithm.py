@@ -97,7 +97,7 @@ class GoExplore:
         new = cell.visit()
         return new or self.reward > cell.reward or self.reward == cell.reward and self.length < cell.length
 
-    def act(self, render=False):
+    def act(self, render=False, return_cells=False):
         if np.random.random() > self.repeat:
             self.action = self.random()
 
@@ -115,7 +115,10 @@ class GoExplore:
 
         cell = self.cellfn(observation)
         code = self.hashfn(cell)
-        save = cell
+        if return_cells:
+            save = cell
+        else:
+            save = None
         cell = self.record[code]
 
         self.trajectory.act(self.action, code)
@@ -127,14 +130,15 @@ class GoExplore:
 
         return False, save
 
-    def run(self, render=False, debug=True, delay=0.01):
+    def run(self, render=False, debug=True, delay=0.01, return_cells=False):
         self.discovered = 0
 
         for i in range(self.nsteps):
-            terminal, cell = self.act(render)
+            terminal, cell = self.act(render, return_cells=return_cells)
             if terminal:
                 break
-            yield cell
+            if return_cells:
+                yield cell
             if debug:
                 sleep(delay)
 
@@ -153,7 +157,7 @@ class GoExplore:
         self.restore(restore_cell)
         self.restore_code = restore_code
 
-    def run_for(self, iterations, verbose=1, renderfn=lambda iteration: False, delimiter=' ', separator=True, debug=False, delay=0.01):
+    def run_for(self, iterations, verbose=1, renderfn=lambda iteration: False, delimiter=' ', separator=True, debug=False, delay=0.01, return_cells=False):
         progress = Progress(
             SpinnerColumn(),
             "[progress.description]{task.description}",
@@ -168,6 +172,7 @@ class GoExplore:
         with progress:
             for iteration in progress.track(range(iterations), description = 'Running'):
                 render = renderfn(iteration)
-                yield from self.run(render, debug=debug, delay=delay)
+                result = self.run(render, debug=debug, delay=delay, return_cells=return_cells)
+                yield from result
                 if verbose >= 1: progress.console.print (self.report())
                 if verbose == 2: progress.console.print (self.status(delimeter=delimeter, separator=separator))
