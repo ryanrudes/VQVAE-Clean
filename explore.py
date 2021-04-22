@@ -8,5 +8,7 @@ goexplore = GoExplore(env)
 goexplore.initialize()
 
 while True:
-    goexplore.run(render = goexplore.iterations % 100 == 0)
-    print (goexplore.report())
+    checkpoint_reached = goexplore.run(render = goexplore.iterations % 100 == 0)
+    print (goexplore.status(delimiter='/', separator=False))
+    if checkpoint_reached:
+        print (goexplore.report())
