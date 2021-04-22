@@ -153,7 +153,7 @@ class GoExplore:
         self.restore(restore_cell)
         self.restore_code = restore_code
 
-    def run_for(self, iterations, verbose=1, renderfn=lambda iteration: False, delimiter=' ', separator=True, debug=False, delay=0.01):
+    def run_for(self, iterations, verbose=1, renderfn=lambda iteration: False, delimeter=' ', separator=True, debug=False, delay=0.01):
         progress = Progress(
             SpinnerColumn(),
             "[progress.description]{task.description}",

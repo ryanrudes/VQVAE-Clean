@@ -16,4 +16,4 @@ for width in range(1, 12):
     for height in range(1, 12):
         cellfn = makecellfn(width, height, interpolation, grayscale, intensities)
         goexplore.initialize(method = 'ram', cellfn = cellfn)
-        goexplore.run_for(iterations, verbose = 0)
+        goexplore.run_for(iterations, verbose = 2)
