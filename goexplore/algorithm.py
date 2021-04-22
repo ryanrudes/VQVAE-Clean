@@ -159,7 +159,7 @@ class GoExplore:
 
         return checkpoint_reached
 
-    def run_for(self, iterations, verbose=1, renderfn=lambda iteration: False, delimiter=' ', separator=True, debug=True, delay=0.01):
+    def run_for(self, iterations, verbose=1, renderfn=lambda iteration: False, delimiter=' ', separator=True, debug=False, delay=0.01):
         progress = Progress(
             SpinnerColumn(),
             "[progress.description]{task.description}",
