@@ -1,6 +1,7 @@
 from .weights import *
 from .powers import *
 from .config import *
+from sys import getsizeof as size
 
 class Cell:
     def __init__(self):
@@ -8,6 +9,15 @@ class Cell:
         self.times_chosen_since_new = 0
         self.times_seen = 0
         self.recompute_score()
+
+    def __sizeof__(self):
+        return size(self.times_chosen)           +\
+               size(self.times_chosen_since_new) +\
+               size(self.times_seen)             +\
+               size(self.score)                  +\
+               size(self.ram)                    +\
+               size(self.reward)                 +\
+               size(self.length)
 
     def cntscore(self, a):
         w = getattr(Weights, a)

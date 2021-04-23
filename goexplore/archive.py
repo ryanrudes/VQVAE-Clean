@@ -8,6 +8,6 @@ class Archive(defaultdict):
 
     def __sizeof__(self):
         total = 0
-        for cell in self:
-            total += size(cell)
+        for code, cell in self.items():
+            total += size(code) + size(cell)
         return total

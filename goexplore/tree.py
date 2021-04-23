@@ -15,7 +15,7 @@ class TreeNode:
                 stack.extend([id(object.root), object.action, object.children])
             elif isinstance(object, dict):
                 for key, value in object.items():
-                    stack.extend([key, id(value), value])
+                    stack.extend([key, value])
             else:
                 total += size(object)
         return total
@@ -55,3 +55,12 @@ class LinkedTree:
             trajectory.append(temp.action)
             temp = temp.root
         return trajectory
+
+    def size(self):
+        count = 0
+        stack = [self.root]
+        while stack:
+            node = stack.pop()
+            count += len(node.children)
+            stack.extend(list(node.children.values()))
+        return count
