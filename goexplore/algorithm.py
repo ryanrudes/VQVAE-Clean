@@ -17,7 +17,7 @@ from collections import defaultdict
 from sys import getsizeof
 from time import sleep
 import numpy as np
-from sys import getsizeof
+
 class GoExplore:
     metadata = {'method': ['ram', 'trajectory']}
 
