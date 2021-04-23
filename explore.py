@@ -6,7 +6,7 @@ import cv2
 
 iterations = 100000
 
-env = Qbert()
+env = MontezumaRevenge()
 goexplore = GoExplore(env)
 
 width = 11
@@ -17,4 +17,4 @@ intensities = 8
 
 cellfn = makecellfn(width, height, interpolation, grayscale, intensities)
 goexplore.initialize(method = 'ram', cellfn = cellfn)
-goexplore.run_for(iterations, verbose = 2)
+goexplore.run_for(iterations, verbose = 2, renderfn = lambda iterations: True)
