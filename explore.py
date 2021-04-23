@@ -16,5 +16,7 @@ grayscale = True
 intensities = 8
 
 cellfn = makecellfn(width, height, interpolation, grayscale, intensities)
-goexplore.initialize(method = 'trajectory', cellfn = cellfn)
-goexplore.run_for(iterations, verbose = 2, renderfn = lambda iterations: True)
+goexplore.initialize(method = 'ram', cellfn = cellfn)
+
+while goexplore.highscore == 0:
+    goexplore.run(render = True)

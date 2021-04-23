@@ -130,7 +130,7 @@ class GoExplore:
 
         return False
 
-    def run(self, render=False, debug=True, delay=0.01):
+    def run(self, render=False, debug=False, delay=0.01):
         self.discovered = 0
 
         for i in range(self.nsteps):
