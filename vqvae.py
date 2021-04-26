@@ -366,7 +366,7 @@ class VQVAE(nn.Module):
                 progress.update(steps, completed = 0, refresh = True)
 
                 for recon_loss, latent_loss, avg_mse, lr in self.train_epoch(epoch, loader, optimizer, scheduler, device, sample_path):
-                    progress.update(steps, description = f'mse: {recon_loss:.5f}; latent: {latent_loss:.3f}; avg mse: {avg_mse:.5f}; lr: {lr:.5f}')
+                    progress.update(steps, description = f'mse: {recon_loss:.5f}; latent: {latent_loss:.5f}; avg mse: {avg_mse:.5f}; lr: {lr:.5f}')
                     progress.advance(steps)
 
                 if dist_fn.is_primary():
