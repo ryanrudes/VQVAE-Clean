@@ -38,7 +38,6 @@ def pbar(spinner=True, description=True, bar=True, percentage=True, time=True, f
 
 def unzip(src, dst):
     progress = pbar(filesize = True, total_filesize = True)
-    print (progress)
     with zipfile.ZipFile(src) as zf:
         size = sum([zinfo.file_size for zinfo in zf.filelist])
 
@@ -95,6 +94,6 @@ def resize(root, mode='move', workers=64, size=160):
     filenames = os.listdir(root)
     filecount = len(filenames)
 
-    with progress:
+    with Progress(*progress) as progress:
         with Pool(workers) as pool:
             list(progress.track(pool.imap(_work, ((root, dest, name, size) for name in filenames)), total = filecount, description = f'Resizing to {dest}'))
