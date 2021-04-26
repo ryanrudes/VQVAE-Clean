@@ -5,8 +5,9 @@ from torch import nn, optim
 import torch
 
 from scheduler import CycleScheduler
-import distributed as dist
+import distributed as dist_fn
 
+from rich.progress import *
 from tqdm import tqdm
 from time import time
 import argparse
@@ -92,8 +93,8 @@ class Quantizer(nn.Module):
             embed_onehot_sum = embed_onehot.sum(0)
             embed_sum = flatten.transpose(0, 1) @ embed_onehot
 
-            dist.all_reduce(embed_onehot_sum)
-            dist.all_reduce(embed_sum)
+            dist_fn.all_reduce(embed_onehot_sum)
+            dist_fn.all_reduce(embed_sum)
 
             self.cluster_size.data.mul_(self.decay).add_(embed_onehot_sum, alpha=1 - self.decay)
             self.embed_avg.data.mul_(self.decay).add_(embed_sum, alpha=1 - self.decay)
@@ -261,7 +262,7 @@ class VQVAE(nn.Module):
         return dec
 
     def train_epoch(self, epoch, loader, optimizer, scheduler, device, sample_path):
-        if dist.is_primary():
+        if dist_fn.is_primary():
             loader = tqdm(loader)
 
         criterion = nn.MSELoss()
@@ -290,13 +291,13 @@ class VQVAE(nn.Module):
             part_mse_sum = recon_loss.item() * img.shape[0]
             part_mse_n = img.shape[0]
             comm = {'mse_sum': part_mse_sum, 'mse_n': part_mse_n}
-            comm = dist.all_gather(comm)
+            comm = dist_fn.all_gather(comm)
 
             for part in comm:
                 mse_sum += part['mse_sum']
                 mse_n += part['mse_n']
 
-            if dist.is_primary():
+            if dist_fn.is_primary():
                 lr = optimizer.param_groups[0]['lr']
 
                 loader.set_description((
@@ -306,12 +307,12 @@ class VQVAE(nn.Module):
                 ))
 
             if i % 100 == 0:
-                model.eval()
+                self.eval()
 
                 sample = img[:sample_size]
 
                 with torch.no_grad():
-                    out, _ = model(sample)
+                    out, _ = self(sample)
 
                 utils.save_image(
                     torch.cat([sample, out], 0),
@@ -321,12 +322,10 @@ class VQVAE(nn.Module):
                     range = (-1, 1),
                 )
 
-                model.train()
+                self.train()
 
-    def train(self, args):
+    def run(self, args):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        args.distributed = dist.get_world_size() > 1
-
         transform = [transforms.ToTensor()]
 
         if args.normalize:
@@ -335,7 +334,7 @@ class VQVAE(nn.Module):
         transform = transforms.Compose(transform)
 
         dataset = datasets.ImageFolder(args.path, transform = transform)
-        sampler = dist.data_sampler(dataset, shuffle = True, distributed = args.distributed)
+        sampler = dist_fn.data_sampler(dataset, shuffle = True, distributed = args.distributed)
         loader = DataLoader(dataset, batch_size = args.batch_size // args.n_gpu, sampler = sampler, num_workers = args.num_workers)
 
         self = self.to(device)
@@ -343,8 +342,8 @@ class VQVAE(nn.Module):
         if args.distributed:
             self = nn.parallel.DistributedDataParallel(
                 self,
-                device_ids = [dist.get_local_rank()],
-                output_device = dist.get_local_rank()
+                device_ids = [dist_fn.get_local_rank()],
+                output_device = dist_fn.get_local_rank()
             )
 
         optimizer = args.optimizer(self.parameters(), lr = args.lr)
@@ -369,5 +368,5 @@ class VQVAE(nn.Module):
         for epoch in range(args.epoch):
             self.train_epoch(epoch, loader, optimizer, scheduler, device, sample_path)
 
-            if dist.is_primary():
+            if dist_fn.is_primary():
                 torch.save(self.state_dict(), os.path.join(checkpoint_path, f'vqvae_{str(i + 1).zfill(3)}.pt'))
