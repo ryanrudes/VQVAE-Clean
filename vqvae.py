@@ -5,7 +5,7 @@ from torch import nn, optim
 import torch
 
 from scheduler import CycleScheduler
-import distributed as dist_fn
+import distributed as dist
 
 from tqdm import tqdm
 from time import time
@@ -70,7 +70,7 @@ class Quantizer(nn.Module):
 
         embed = torch.randn(dim, n_embed)
         embed_avg = embed.clone()
-        cluster_size = torch.zeros_n(embed)
+        cluster_size = torch.zeros(n_embed)
 
         self.register_buffer('embed', embed)
         self.register_buffer('embed_avg', embed_avg)
@@ -92,8 +92,8 @@ class Quantizer(nn.Module):
             embed_onehot_sum = embed_onehot.sum(0)
             embed_sum = flatten.transpose(0, 1) @ embed_onehot
 
-            dist_fn.all_reduce(embed_onehot_sum)
-            dist_fn.all_reduce(embed_sum)
+            dist.all_reduce(embed_onehot_sum)
+            dist.all_reduce(embed_sum)
 
             self.cluster_size.data.mul_(self.decay).add_(embed_onehot_sum, alpha=1 - self.decay)
             self.embed_avg.data.mul_(self.decay).add_(embed_sum, alpha=1 - self.decay)
@@ -347,7 +347,7 @@ class VQVAE(nn.Module):
                 output_device = dist.get_local_rank()
             )
 
-        optimizer = args.optimizer(model.parameters(), lr = args.lr)
+        optimizer = args.optimizer(self.parameters(), lr = args.lr)
         schedular = None
         if args.sched == 'cycle':
             scheduler = CycleScheduler(
@@ -358,7 +358,7 @@ class VQVAE(nn.Module):
                 warmup_proportion = 0.05,
             )
 
-        start = time()
+        start = str(time())
         run_path = os.path.join('runs', start)
         sample_path = os.path.join(run_path, 'sample')
         checkpoint_path = os.path.join(run_path, 'checkpoint')
@@ -370,4 +370,4 @@ class VQVAE(nn.Module):
             self.train_epoch(epoch, loader, optimizer, scheduler, device, sample_path)
 
             if dist.is_primary():
-                torch.save(model.state_dict(), os.path.join(checkpoint_path, f'vqvae_{str(i + 1).zfill(3)}.pt'))
+                torch.save(self.state_dict(), os.path.join(checkpoint_path, f'vqvae_{str(i + 1).zfill(3)}.pt'))

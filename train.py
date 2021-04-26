@@ -1,9 +1,12 @@
+import distributed as dist
 from vqvae import VQVAE
 from torch import optim
+import sys
+import os
 
 class Args:
     n_gpu = 1
-    port = (2 ** 15 + 2 ** 14 + hash(os.getuid() if sys.platform != "win32" else 1) % 2 ** 14
+    port = 2 ** 15 + 2 ** 14 + hash(os.getuid() if sys.platform != "win32" else 1) % 2 ** 14
     dist_url = f'tcp://127.0.0.1:{port}'
     size = 256
     epoch = 560
