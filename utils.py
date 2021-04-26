@@ -7,23 +7,43 @@ import zipfile
 import cv2
 import os
 
-def unzip(src, dst, desc='Extracting'):
-    progress = Progress(
-        SpinnerColumn(),
-        "[progress.description]{task.description}",
-        BarColumn(),
-        "[progress.percentage]{task.percentage:>3.0f}%",
-        TimeRemainingColumn(),
-        FileSizeColumn(),
-        'of',
-        TotalFileSizeColumn()
-    )
+def pbar(spinner=True, description=True, bar=True, percentage=True, time=True, filesize=False, total_filesize=False, count=False, units='items'):
+    progress = []
+
+    if spinner:
+        progress.append(SpinnerColumn())
+
+    if description:
+        progress.append("[progress.description]{task.description}")
+
+    if bar:
+        progress.append(BarColumn())
+
+    if percentage:
+        progress.append("[progress.percentage]{task.percentage:>3.0f}%")
+
+    if time:
+        progress.append(TimeRemainingColumn())
+
+    if filesize:
+        progress.append(FileSizeColumn())
+
+    if total_filesize:
+        progress.extend(['of', TotalFileSizeColumn()])
+
+    if count:
+        progress.append("[progress.completed]{task.completed} %s" % units)
+
+    return progress
+
+def unzip(src, dst):
+    progress = pbar(filesize = True, total_filesize = True)
 
     with zipfile.ZipFile(src) as zf:
         size = sum([zinfo.file_size for zinfo in zf.filelist])
 
         with progress:
-            task = progress.add_task(desc, total = size)
+            task = progress.add_task(f'Extracting to {dst}', total = size)
             for member in zf.infolist():
                 try:
                     zf.extract(member, dst)
@@ -46,7 +66,7 @@ def download(dataset, destination):
         expected = '/'.join(list(dataset2fileID.keys()))
         raise ValueError(f'Expected `dataset` to be one of {expected}, but found {dataset}')
 
-def work(args):
+def _work(args):
     root, dest, name, size = args
 
     if name.endswith('.jpeg'):
@@ -70,17 +90,11 @@ def resize(root, mode='move', workers=64, size=160):
     else:
         raise ValueError(f'Expected write mode `mode` to be one of move/replace, but found {mode}')
 
-    progress = Progress(
-        SpinnerColumn(),
-        "[progress.description]{task.description}",
-        BarColumn(),
-        "[progress.percentage]{task.percentage:>3.0f}%",
-        TimeRemainingColumn(),
-    )
+    progress = pbar()
 
     filenames = os.listdir(root)
     filecount = len(filenames)
 
     with progress:
         with Pool(workers) as pool:
-            list(progress.track(pool.imap(work, ((root, dest, name, size) for name in filenames)), total = filecount, description = f'Writing to {dest}'))
+            list(progress.track(pool.imap(_work, ((root, dest, name, size) for name in filenames)), total = filecount, description = f'Resizing to {dest}'))
