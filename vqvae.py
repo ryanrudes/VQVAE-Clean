@@ -1,9 +1,20 @@
+from torchvision import datasets, transforms, utils
+from torch.utils.data import DataLoader
 from torch.nn import functional as F
-from torch import nn
+from torch import nn, optim
 import torch
 
+from scheduler import CycleScheduler
 import distributed as dist_fn
 
+from tqdm import tqdm
+from time import time
+import argparse
+import sys
+import os
+
+# MODEl ARCHITECTURE, ie. nn.Module CODE
+#
 # This is a modification of licensed source code that has
 # been released into the public domain by its author(s)
 #
@@ -21,7 +32,34 @@ import distributed as dist_fn
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class Quantize(nn.Module):
+# TRAINING CODE
+#
+# This is a modification of licensed source code that has
+# been released into the public domain by its author(s)
+#
+# MIT License
+#
+# Copyright (c) 2019 Kim Seonghyeon
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+class Quantizer(nn.Module):
     def __init__(self, dim, n_embed, decay=0.99, eps=1e-5):
         super().__init__()
 
@@ -167,13 +205,13 @@ class VQVAE(nn.Module):
             Encoder(channel, channel, n_res_block, n_res_channel, stride=2)
         )
         self.quantize_conv_t = nn.Conv2d(channel, embed_dim, 1)
-        self.quantize_t = Quantize(embed_dim, n_embed)
+        self.quantize_t = Quantizer(embed_dim, n_embed)
         self.dec_t = nn.Sequential(
             Decoder(embed_dim, embed_dim, channel, n_res_block, n_res_channel, stride=2),
             Decoder(embed_dim, embed_dim, channel, n_res_block, n_res_channel, stride=4),
         )
         self.quantize_conv_b = nn.Conv2d(embed_dim + channel, embed_dim, 1)
-        self.quantize_b = Quantize(embed_dim, n_embed)
+        self.quantize_b = Quantizer(embed_dim, n_embed)
         self.upsample_t = nn.Sequential(
             nn.ConvTranspose2d(embed_dim, embed_dim, 4, stride=2, padding=1),
             nn.ConvTranspose2d(embed_dim, embed_dim, 4, stride=4, padding=0),
@@ -221,3 +259,115 @@ class VQVAE(nn.Module):
         dec = self.decode(quant_t, quant_b)
 
         return dec
+
+    def train_epoch(self, epoch, loader, optimizer, scheduler, device, sample_path):
+        if dist.is_primary():
+            loader = tqdm(loader)
+
+        criterion = nn.MSELoss()
+
+        latent_loss_weight = 0.25
+        sample_size = 25
+
+        mse_sum = 0
+        mse_n = 0
+
+        for i, (img, label) in enumerate(loader):
+            self.zero_grad()
+
+            img = img.to(device)
+            out, latent_loss = self(img)
+            recon_loss = criterion(out, img)
+            latent_loss = latent_loss.mean()
+            loss = recon_loss + latent_loss_weight * latent_loss
+            loss.backward()
+
+            if not scheduler is None:
+                scheduler.step()
+
+            optimizer.step()
+
+            part_mse_sum = recon_loss.item() * img.shape[0]
+            part_mse_n = img.shape[0]
+            comm = {'mse_sum': part_mse_sum, 'mse_n': part_mse_n}
+            comm = dist.all_gather(comm)
+
+            for part in comm:
+                mse_sum += part['mse_sum']
+                mse_n += part['mse_n']
+
+            if dist.is_primary():
+                lr = optimizer.param_groups[0]['lr']
+
+                loader.set_description((
+                    f'epoch: {epoch + 1}; mse: {recon_loss.item():.5f}; '
+                    f'latent: {latent_loss.item():.3f}; avg mse: {mse_sum / mse_n:.5f}; '
+                    f'lr: {lr:.5f}'
+                ))
+
+            if i % 100 == 0:
+                model.eval()
+
+                sample = img[:sample_size]
+
+                with torch.no_grad():
+                    out, _ = model(sample)
+
+                utils.save_image(
+                    torch.cat([sample, out], 0),
+                    os.path.join(sample_path, f'{str(epoch + 1).zfill(5)}_{str(i).zfill(5)}.png'),
+                    nrow = sample_size,
+                    normalize = True,
+                    range = (-1, 1),
+                )
+
+                model.train()
+
+    def train(self, args):
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        args.distributed = dist.get_world_size() > 1
+
+        transform = [transforms.ToTensor()]
+
+        if args.normalize:
+            transform.append(transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5]))
+
+        transform = transforms.Compose(transform)
+
+        dataset = datasets.ImageFolder(args.path, transform = transform)
+        sampler = dist.data_sampler(dataset, shuffle = True, distributed = args.distributed)
+        loader = DataLoader(dataset, batch_size = args.batch_size // args.n_gpu, sampler = sampler, num_workers = args.num_workers)
+
+        self = self.to(device)
+
+        if args.distributed:
+            self = nn.parallel.DistributedDataParallel(
+                self,
+                device_ids = [dist.get_local_rank()],
+                output_device = dist.get_local_rank()
+            )
+
+        optimizer = args.optimizer(model.parameters(), lr = args.lr)
+        schedular = None
+        if args.sched == 'cycle':
+            scheduler = CycleScheduler(
+                optimizer,
+                args.lr,
+                n_iter = len(loader) * args.epoch,
+                momentum = None,
+                warmup_proportion = 0.05,
+            )
+
+        start = time()
+        run_path = os.path.join('runs', start)
+        sample_path = os.path.join(run_path, 'sample')
+        checkpoint_path = os.path.join(run_path, 'checkpoint')
+        os.mkdir(run_path)
+        os.mkdir(sample_path)
+        os.mkdir(checkpoint_path)
+
+        for epoch in range(args.epoch):
+            self.train_epoch(epoch, loader, optimizer, scheduler, device, sample_path)
+
+            if dist.is_primary():
+                torch.save(model.state_dict(), os.path.join(checkpoint_path, f'vqvae_{str(i + 1).zfill(3)}.pt'))
