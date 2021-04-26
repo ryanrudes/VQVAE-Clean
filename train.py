@@ -15,10 +15,11 @@ class Args:
     num_workers = 4
     normalize = True
     optimizer = optim.Adam
+    distributed = dist.get_world_size() > 1
     sched = ''
     path = ''
 
 args = Args()
 model = VQVAE()
 
-dist.launch(model.train, args.n_gpu, 1, 0, args.dist_url, args = (args,))
+dist.launch(model.run, args.n_gpu, 1, 0, args.dist_url, args = (args,))
