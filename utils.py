@@ -42,7 +42,7 @@ def unzip(src, dst):
     with zipfile.ZipFile(src) as zf:
         size = sum([zinfo.file_size for zinfo in zf.filelist])
 
-        with Progress(*progress):
+        with Progress(*progress) as progress:
             task = progress.add_task(f'Extracting to {dst}', total = size)
             for member in zf.infolist():
                 try:
