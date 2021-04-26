@@ -6,6 +6,7 @@ import torch
 
 from scheduler import CycleScheduler
 import distributed as dist_fn
+from utils import pbar
 
 from rich.progress import *
 from tqdm import tqdm
@@ -262,9 +263,6 @@ class VQVAE(nn.Module):
         return dec
 
     def train_epoch(self, epoch, loader, optimizer, scheduler, device, sample_path):
-        if dist_fn.is_primary():
-            loader = tqdm(loader)
-
         criterion = nn.MSELoss()
 
         latent_loss_weight = 0.25
@@ -297,14 +295,7 @@ class VQVAE(nn.Module):
                 mse_sum += part['mse_sum']
                 mse_n += part['mse_n']
 
-            if dist_fn.is_primary():
-                lr = optimizer.param_groups[0]['lr']
-
-                loader.set_description((
-                    f'epoch: {epoch + 1}; mse: {recon_loss.item():.5f}; '
-                    f'latent: {latent_loss.item():.3f}; avg mse: {mse_sum / mse_n:.5f}; '
-                    f'lr: {lr:.5f}'
-                ))
+            lr = optimizer.param_groups[0]['lr']
 
             if i % 100 == 0:
                 self.eval()
@@ -323,6 +314,8 @@ class VQVAE(nn.Module):
                 )
 
                 self.train()
+
+            yield recon_loss.item(), latent_loss.item(), mse_sum / mse_n, lr
 
     def run(self, args):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -365,8 +358,19 @@ class VQVAE(nn.Module):
         os.mkdir(sample_path)
         os.mkdir(checkpoint_path)
 
-        for epoch in range(args.epoch):
-            self.train_epoch(epoch, loader, optimizer, scheduler, device, sample_path)
+        with Progress() as progress:
+            train = progress.add_task(f'epoch 1/{args.epoch}', total = args.epoch, columns = 'epochs')
+            steps = progress.add_task('', total = len(dataset) // args.batch_size)
 
-            if dist_fn.is_primary():
-                torch.save(self.state_dict(), os.path.join(checkpoint_path, f'vqvae_{str(i + 1).zfill(3)}.pt'))
+            for epoch in range(args.epoch):
+                progress.update(steps, completed = 0, refresh = True)
+
+                for recon_loss, latent_loss, avg_mse, lr in self.train_epoch(epoch, loader, optimizer, scheduler, device, sample_path):
+                    progress.update(steps, description = f'mse: {recon_loss:.5f}; latent: {latent_loss:.3f}; avg mse: {avg_mse:.5f}; lr: {lr:.5f}')
+                    progress.advance(steps)
+
+                if dist_fn.is_primary():
+                    torch.save(self.state_dict(), os.path.join(checkpoint_path, f'vqvae_{str(epoch + 1).zfill(3)}.pt'))
+
+                progress.update(train, description = f'epoch {epoch + 1}/{args.epoch}')
+                progress.advance(train)
