@@ -310,7 +310,7 @@ class VQVAE(nn.Module):
                     os.path.join(sample_path, f'{str(epoch + 1).zfill(5)}_{str(i).zfill(5)}.png'),
                     nrow = sample_size,
                     normalize = True,
-                    range = (-1, 1),
+                    value_range = (-1, 1),
                 )
 
                 self.train()
