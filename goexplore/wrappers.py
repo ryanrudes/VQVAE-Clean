@@ -82,3 +82,13 @@ Pitfall          = lambda: GymSpecialWrapper('Pitfall', TerminalConditionGroup([
                                                             TerminateOnNegativeReward(),
                                                             TerminateOnLifeLoss(3)
                                                         ]))
+
+name2env = {
+    'MontezumaRevenge': MontezumaRevenge,
+    'SpaceInvaders': SpaceInvaders,
+    'VideoPinball': VideoPinball,
+    'Breakout': Breakout,
+    'Qbert': Qbert,
+    'Pong': Pong,
+    'Pitfall': Pitfall
+}
