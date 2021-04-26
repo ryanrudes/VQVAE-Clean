@@ -15,7 +15,7 @@ import argparse
 import sys
 import os
 
-# MODEl ARCHITECTURE, ie. nn.Module CODE
+# MODEl ARCHITECTURE, ie. nn.Module classes
 #
 # This is a modification of licensed source code that has
 # been released into the public domain by its author(s)
@@ -34,7 +34,7 @@ import os
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TRAINING CODE
+# VQVAE.train_epoch() and VQVAE.run()
 #
 # This is a modification of licensed source code that has
 # been released into the public domain by its author(s)
