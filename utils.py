@@ -38,7 +38,7 @@ def pbar(spinner=True, description=True, bar=True, percentage=True, time=True, f
 
 def unzip(src, dst):
     progress = pbar(filesize = True, total_filesize = True)
-
+    print (progress)
     with zipfile.ZipFile(src) as zf:
         size = sum([zinfo.file_size for zinfo in zf.filelist])
 
