@@ -348,7 +348,7 @@ class VQVAE(nn.Module):
             )
 
         optimizer = args.optimizer(self.parameters(), lr = args.lr)
-        schedular = None
+        scheduler = None
         if args.sched == 'cycle':
             scheduler = CycleScheduler(
                 optimizer,
