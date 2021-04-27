@@ -115,7 +115,7 @@ class GoExplore:
             self.env.render()
 
         if terminal:
-            return True
+            return observation, reward, terminal, info
 
         cell = self.cellfn(observation)
         code = self.hashfn(cell)
@@ -128,13 +128,20 @@ class GoExplore:
             cell.setstate(self.getstate())
             self.discovered += 1
 
-        return False
+        return observation, reward, terminal, info
 
-    def run(self, render=False, debug=False, delay=0.01):
+    def run(self, render=False, debug=False, delay=0.01, return_states=False):
         self.discovered = 0
 
+        if return_states:
+            observations = []
+
         for i in range(self.nsteps):
-            terminal = self.act(render)
+            observation, reward, terminal, info = self.act(render)
+
+            if return_states:
+                observations.append(observation)
+
             if terminal:
                 break
             if debug:
@@ -154,6 +161,9 @@ class GoExplore:
 
         self.restore(restore_cell)
         self.restore_code = restore_code
+
+        if return_states:
+            return observations
 
     def run_for(self, iterations, verbose=1, renderfn=lambda iteration: False, delimeter=' ', separator=True, debug=False, delay=0.01):
         progress = Progress(
