@@ -1,10 +1,10 @@
-from multiprocessing import Pool
 from goexplore.algorithm import GoExplore
 from goexplore.wrappers import *
 from goexplore.utils import *
-import cv2
 
+from multiprocessing import Pool
 from rich import print
+import cv2
 
 iterations = 100000
 
