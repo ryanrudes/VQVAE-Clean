@@ -262,6 +262,23 @@ class VQVAE(nn.Module):
 
         return dec
 
+    def train_step(self, img, optimizer, criterion, device, scheduler, latent_loss_weight):
+        self.zero_grad()
+
+        img = img.to(device)
+        out, latent_loss = self(img)
+        recon_loss = criterion(out, img)
+        latent_loss = latent_loss.mean()
+        loss = recon_loss + latent_loss_weight * latent_loss
+        loss.backward()
+
+        if not scheduler is None:
+            scheduler.step()
+
+        optimizer.step()
+
+        return recon_loss, latent_loss
+
     def train_epoch(self, epoch, loader, optimizer, scheduler, device, sample_path):
         criterion = nn.MSELoss()
 
@@ -272,19 +289,7 @@ class VQVAE(nn.Module):
         mse_n = 0
 
         for i, (img, label) in enumerate(loader):
-            self.zero_grad()
-
-            img = img.to(device)
-            out, latent_loss = self(img)
-            recon_loss = criterion(out, img)
-            latent_loss = latent_loss.mean()
-            loss = recon_loss + latent_loss_weight * latent_loss
-            loss.backward()
-
-            if not scheduler is None:
-                scheduler.step()
-
-            optimizer.step()
+            recon_loss, latent_loss = self.train_step(img, optimizer, criterion, device, scheduler, latent_loss_weight)
 
             part_mse_sum = recon_loss.item() * img.shape[0]
             part_mse_n = img.shape[0]
