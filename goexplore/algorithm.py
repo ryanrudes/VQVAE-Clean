@@ -10,6 +10,7 @@ from .cell import *
 from .tree import *
 
 from rich.traceback import install
+from rich.console import Console
 from rich.progress import *
 install()
 
@@ -25,6 +26,12 @@ class GoExplore:
         self.env = env
         self.report = lambda: 'Iterations: %d, Cells: %d, Frames: %d, Max Reward: %d' % (self.iterations, len(self.record), self.frames, self.highscore)
         self.status = lambda delimiter=' ', separator=True: 'Archive: %s, Trajectory: %s' % (prettysize(self.record, delimiter=delimiter, separator=separator, sizefn=getsizeof), prettysize(self.trajectory, delimiter=delimiter, separator=separator))
+
+    def log(self, verbose, console=Console()):
+        if verbose == 1:
+            console.print(self.report())
+        elif verbose == 2:
+            console.print(self.report() + ', ' + self.status(delimeter, separator))
 
     def ram(self):
         return self.env.env.clone_full_state()
@@ -42,7 +49,8 @@ class GoExplore:
             trajectory = self.trajectory.get_trajectory()
             while trajectory:
                 action = trajectory.pop()
-                self.env.step(action)
+                observation, reward, terminal, info = self.env.step(action)
+                yield observation
 
     def random(self):
         return self.env.action_space.sample()
@@ -130,7 +138,7 @@ class GoExplore:
 
         return observation, reward, terminal, info
 
-    def run(self, render=False, debug=False, delay=0.01, return_states=False):
+    def run(self, render=False, debug=False, delay=0.01, return_states=False, max_frames=np.inf):
         self.discovered = 0
 
         if return_states:
@@ -142,8 +150,9 @@ class GoExplore:
             if return_states:
                 observations.append(observation)
 
-            if terminal:
+            if terminal or self.frames == max_frames:
                 break
+
             if debug:
                 sleep(delay)
 
@@ -159,29 +168,43 @@ class GoExplore:
         restore_code = np.random.choice(codes, p = probs)
         restore_cell = self.record[restore_code]
 
-        self.restore(restore_cell)
+        traj = list(self.restore(restore_cell))
         self.restore_code = restore_code
 
         if return_states:
-            return observations
+            return observations + traj
 
-    def run_for(self, iterations, verbose=1, renderfn=lambda iteration: False, delimeter=' ', separator=True, debug=False, delay=0.01):
+    def run_for(self, duration, verbose=1, units='iterations', renderfn=lambda iteration: False, delimeter=' ', separator=True, debug=False, delay=0.01):
+        ensure_type(verbose, int, 'verbose', 'logging verbosity')
+        ensure_range(verbose, int, 'verbose', 'logging verbosity', 0, 2)
+        ensure_from(units, ['iterations', 'frames'], 'units', 'units of duration')
+
         progress = Progress(
             SpinnerColumn(),
             "[progress.description]{task.description}",
             BarColumn(),
             "[progress.percentage]{task.percentage:>3.0f}%",
             TimeRemainingColumn(),
+            "{task.completed} of {task.total} %s" % units
         )
 
-        ensure_type(verbose, int, 'verbose', 'logging verbosity')
-        ensure_range(verbose, int, 'verbose', 'logging verbosity', 0, 2)
+        if units == 'iterations':
+            max_frames = np.inf
+        else:
+            max_frames = duration
 
         with progress:
-            for iteration in progress.track(range(iterations), description = 'Running'):
+            task = progress.add_task("Running", total = duration)
+            iteration = 0
+
+            while not progress.finished:
                 render = renderfn(iteration)
-                self.run(render, debug=debug, delay=delay)
-                if verbose == 1:
-                    progress.console.print(self.report())
-                elif verbose == 2:
-                    progress.console.print(self.report() + ', ' + self.status(delimeter, separator))
+                self.run(render, debug=debug, delay=delay, max_frames=max_frames)
+
+                if units == 'iterations':
+                    progress.advance(task)
+                else:
+                    progress.update(task, completed = self.frames, refresh = True)
+
+                self.log(verbose, progress.console)
+                iteration += 1
