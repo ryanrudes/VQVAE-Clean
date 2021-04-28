@@ -68,7 +68,7 @@ class Experiment:
             results['experiments'][experiment] = {}
             for attr in record:
                 results['experiments'][experiment][attr] = getattr(self.goexplore, attr)
-            results.update(callback(self.goexplore, experiment, save))
+            results['experiments'][experiment].update(callback(self.goexplore, experiment, save))
 
         if sendmail:
             message = json.dumps(results, indent = 4)
