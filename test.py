@@ -23,7 +23,7 @@ SEED = 42
 
 METHOD = 'ram'
 
-address = 'ryanrudes@gmail.com'
+address = input('Enter your email address: ')
 
 def callback(goexplore, experiment, root):
     path = os.path.join(root, 'experiments')
