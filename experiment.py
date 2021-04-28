@@ -41,15 +41,25 @@ class Experiment:
             os.mkdir('experiments')
 
         start = input('Enter a name for this experiment (or press enter to use current system time): ')
-        if not start:
+
+        if start:
+            save = f'experiments/{start}'
+            if os.path.exists(save):
+                duplicateID = 2
+                temp = f'{save} ({duplicateID})'
+                while os.path.exists(temp):
+                    duplicateID += 1
+                    temp = f'{save} ({duplicateID})'
+                save = temp
+        else:
             start = str(time())
+            save = f'experiments/{start}'
+
+        os.mkdir(save)
 
         if sendmail:
             mail.validate(address)
             password = self.agreement(start, address)
-
-        save = f'experiments/{start}'
-        os.mkdir(save)
 
         results = {'experiments': {}}
         for experiment in range(experiments):
