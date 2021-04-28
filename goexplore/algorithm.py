@@ -18,6 +18,10 @@ from collections import defaultdict
 from sys import getsizeof
 from time import sleep
 import numpy as np
+import shutil
+import json
+import gzip
+import os
 
 class GoExplore:
     metadata = {'method': ['ram', 'trajectory']}
@@ -26,6 +30,9 @@ class GoExplore:
         self.env = env
         self.report = lambda: 'Iterations: %d, Cells: %d, Frames: %d, Max Reward: %d' % (self.iterations, len(self.record), self.frames, self.highscore)
         self.status = lambda delimiter=' ', separator=True: 'Archive: %s, Trajectory: %s' % (prettysize(self.record, delimiter=delimiter, separator=separator, sizefn=getsizeof), prettysize(self.trajectory, delimiter=delimiter, separator=separator))
+
+    def archivesize(self):
+        return len(self.record)
 
     def log(self, verbose, console=Console()):
         if verbose == 1:
@@ -68,7 +75,8 @@ class GoExplore:
                    repeat=0.95,
                    nsteps=100,
                    seed=42,
-                   method='ram'):
+                   method='ram',
+                   **kwargs):
         self.cellfn = cellfn
         self.hashfn = hashfn
         self.repeat = repeat
@@ -138,7 +146,12 @@ class GoExplore:
 
         return observation, reward, terminal, info
 
-    def run(self, render=False, debug=False, delay=0.01, return_states=False, max_frames=np.inf):
+    def run(self,
+            render=False,
+            debug=False,
+            delay=0.01,
+            return_states=False,
+            max_frames=np.inf):
         self.discovered = 0
 
         if return_states:
@@ -174,7 +187,17 @@ class GoExplore:
         if return_states:
             return observations + traj
 
-    def run_for(self, duration, verbose=1, units='iterations', renderfn=lambda iteration: False, delimeter=' ', separator=True, debug=False, delay=0.01):
+    def run_for(self,
+                duration,
+                verbose=1,
+                units='iterations',
+                renderfn=lambda iteration: False,
+                delimeter=' ',
+                separator=True,
+                debug=False,
+                delay=0.01,
+                desc='Running',
+                **kwargs):
         ensure_type(verbose, int, 'verbose', 'logging verbosity')
         ensure_range(verbose, int, 'verbose', 'logging verbosity', 0, 2)
         ensure_from(units, ['iterations', 'frames'], 'units', 'units of duration')
@@ -194,7 +217,7 @@ class GoExplore:
             max_frames = duration
 
         with progress:
-            task = progress.add_task("Running", total = duration)
+            task = progress.add_task(desc, total = duration)
             iteration = 0
 
             while not progress.finished:
@@ -208,3 +231,49 @@ class GoExplore:
 
                 self.log(verbose, progress.console)
                 iteration += 1
+
+    def save(self, path):
+        try:
+            if not os.path.exists(path):
+                os.mkdir(path)
+
+            states = os.path.join(path, 'ram')
+            trajectories = os.path.join(path, 'trajectory')
+
+            os.mkdir(states)
+            os.mkdir(trajectories)
+
+            data = {}
+            for code, cell in self.record.items():
+                with gzip.GzipFile(os.path.join(states, f'{code}.npy.gz'), 'w') as f:
+                    np.save(f, cell.ram)
+
+                with gzip.GzipFile(os.path.join(trajectories, f'{code}.npy.gz'), 'w') as f:
+                    np.save(f, np.array(self.trajectory.get_trajectory(cell.node)))
+
+                info = {
+                    'reward': cell.reward,
+                    'selection': {
+                        'score': cell.score,
+                        'counts': {
+                            'times chosen': cell.times_chosen,
+                            'times chosen since new': cell.times_chosen_since_new,
+                            'times seen': cell.times_seen
+                        }
+                    }
+                }
+
+                data[code] = info
+
+            with open(os.path.join(path, 'exploration.json'), 'w') as f:
+                json.dump(data, f)
+
+            shutil.make_archive(os.path.join(path, 'ram'), 'gztar', states)
+            shutil.make_archive(os.path.join(path, 'trajectory'), 'gztar', trajectories)
+
+            shutil.rmtree(states)
+            shutil.rmtree(trajectories)
+
+            return True
+        except:
+            return False

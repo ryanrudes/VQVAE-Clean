@@ -48,8 +48,9 @@ class LinkedTree:
     def set(self, node):
         self.node = node
 
-    def get_trajectory(self):
-        temp = self.node
+    def get_trajectory(self, temp=None):
+        if temp is None:
+            temp = self.node
         trajectory = []
         while not temp.action is None:
             trajectory.append(temp.action)
