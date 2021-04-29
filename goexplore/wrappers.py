@@ -66,7 +66,7 @@ class FrameStack(gym.Wrapper):
         return self.observe(), reward, terminal, info
 
 class GymSpecialWrapper(SpecialWrapper):
-    def __init__(self, env_id, terminal_condition):
+    def __init__(self, env_id, terminal_condition=None):
         super(GymSpecialWrapper, self).__init__(gym.make(env_id + 'Deterministic-v4'), terminal_condition)
         self.env_id = env_id
 
