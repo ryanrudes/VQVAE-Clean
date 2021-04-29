@@ -12,8 +12,8 @@ def renderfn(iterations):
 def hashfn(cell):
     return md5(cell.data.tobytes()).hexdigest()
 
-EXPERIMENTS = 100
-DURATION = 300000
+EXPERIMENTS = 1
+DURATION = 1000
 UNITS = 'frames'
 
 RENDERFN = renderfn
@@ -33,7 +33,7 @@ def callback(goexplore, experiment, root):
     if not os.path.exists(path):
         os.mkdir(path)
     path = os.path.join(path, str(experiment))
-    goexplore.save(path, ram = False)
+    goexplore.save(path)
     return {'cells': goexplore.archivesize()}
 
 record = ['highscore', 'frames', 'iterations']
