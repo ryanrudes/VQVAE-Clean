@@ -89,36 +89,3 @@ class LinkedTree:
             node = node.add(action)
         node.assign(code)
         return node
-
-    """
-    def save(self, path):
-        def write(node):
-            if hasattr(node, 'code'):
-                f.write('@' + str(node.code) + '\n')
-
-            for action, child in node.children.items():
-                f.write(str(action) + '\n')
-                write(child)
-
-            f.write('*\n')
-
-        with open(path, 'w') as f:
-            write(self.root)
-
-    def load(self, path, clear=True):
-        if clear:
-            del self.root
-            self.root = TreeNode()
-
-        node = self.root
-
-        with open(path, 'r') as f:
-            for line in f.readlines():
-                line = line.strip()
-                if line == '*':
-                    node = node.ascend()
-                elif line[0] == '@':
-                    node.assign(int(line[1:]))
-                else:
-                    node = node.add(int(line))
-    """
