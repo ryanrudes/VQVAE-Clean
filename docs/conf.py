@@ -1,1 +1,1 @@
-source_suffix = ".rst"
+source_suffix = ".md"
