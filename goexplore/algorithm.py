@@ -18,18 +18,46 @@ from collections import defaultdict
 from sys import getsizeof
 from time import sleep
 import numpy as np
+import inspect
+import marshal
+import tarfile
 import shutil
+import types
 import json
 import gzip
+import sys
 import os
+import io
 
 class GoExplore:
     metadata = {'method': ['ram', 'trajectory']}
 
-    def __init__(self, env):
+    def __init__(self, env, hashseed=42):
         self.env = env
         self.report = lambda: 'Iterations: %d, Cells: %d, Frames: %d, Max Reward: %d' % (self.iterations, len(self.record), self.frames, self.highscore)
         self.status = lambda delimiter=' ', separator=True: 'Archive: %s, Trajectory: %s' % (prettysize(self.record, delimiter=delimiter, separator=separator, sizefn=getsizeof), prettysize(self.trajectory, delimiter=delimiter, separator=separator))
+        self.setseed(hashseed)
+
+    @property
+    def __dict__(self):
+        return {
+            'env': self.env.env_id,
+            'seed': self.seed,
+            'method': self.method,
+            'repeat': self.repeat,
+            'nsteps': self.nsteps,
+            'highscore': self.highscore,
+            'frames': self.frames,
+            'iterations': self.iterations,
+            'cellfn': inspect.getsource(self.cellfn),
+            'hashfn': inspect.getsource(self.hashfn),
+        }
+
+    def setseed(self, seed):
+        self.hashseed = seed
+        if not os.environ.get('PYTHONHASHSEED'):
+            os.environ['PYTHONHASHSEED'] = str(seed)
+            os.execv(sys.executable, ['python3'] + sys.argv)
 
     def archivesize(self):
         return len(self.record)
@@ -82,6 +110,7 @@ class GoExplore:
         self.repeat = repeat
         self.nsteps = nsteps
         self.method = method
+        self.seed = seed
 
         ensure_type(repeat, float, 'repeat', 'action repeat probability')
         ensure_range(repeat, float, 'repeat', 'action repeat probability', 0, 1)
@@ -104,11 +133,12 @@ class GoExplore:
         self.highscore = 0
         self.discovered = 0
         self.iterations = 0
-        self.trajectory = LinkedTree(code)
+        self.trajectory = LinkedTree()
 
         cell = self.record[code]
 
         cell.node = self.trajectory.node
+        self.trajectory.node.assign(code)
         cell.visit()
         cell.setstate(self.getstate())
         self.restore_code = code
@@ -137,10 +167,15 @@ class GoExplore:
         code = self.hashfn(cell)
         cell = self.record[code]
 
-        self.trajectory.act(self.action, code)
+        self.trajectory.act(self.action)
 
         if self.update(cell):
+            if hasattr(cell, 'code'):
+                cell.node.remove()
+
             cell.node = self.trajectory.node
+            self.trajectory.node.assign(code)
+
             cell.setstate(self.getstate())
             self.discovered += 1
 
@@ -234,15 +269,23 @@ class GoExplore:
 
     def save(self, path):
         try:
+            # Make the save directory if it does not already exist
             if not os.path.exists(path):
                 os.mkdir(path)
+
+            # Write PYTHONHASHSEED to file
+            with open(os.path.join(path, '.PYTHONHASHSEED'), 'w') as f:
+                f.write(str(self.hashseed))
 
             states = os.path.join(path, 'ram')
             trajectories = os.path.join(path, 'trajectory')
 
+            # Make directories
             os.mkdir(states)
             os.mkdir(trajectories)
 
+            # Save emulator ram states and action trajectories to compressed .npy.gz archives
+            # Collect archive data
             data = {}
             for code, cell in self.record.items():
                 with gzip.GzipFile(os.path.join(states, f'{code}.npy.gz'), 'w') as f:
@@ -250,30 +293,94 @@ class GoExplore:
 
                 with gzip.GzipFile(os.path.join(trajectories, f'{code}.npy.gz'), 'w') as f:
                     np.save(f, np.array(self.trajectory.get_trajectory(cell.node)))
+                data[code] = cell.save()
 
-                info = {
-                    'reward': cell.reward,
-                    'selection': {
-                        'score': cell.score,
-                        'counts': {
-                            'times chosen': cell.times_chosen,
-                            'times chosen since new': cell.times_chosen_since_new,
-                            'times seen': cell.times_seen
-                        }
-                    }
-                }
-
-                data[code] = info
-
+            # Save archive data
             with open(os.path.join(path, 'exploration.json'), 'w') as f:
                 json.dump(data, f)
 
+            # Save vars
+            with open(os.path.join(path, 'vars.json'), 'w') as f:
+                json.dump(vars(self), f)
+
+            # Make .tar.gz archives for directories
             shutil.make_archive(os.path.join(path, 'ram'), 'gztar', states)
             shutil.make_archive(os.path.join(path, 'trajectory'), 'gztar', trajectories)
 
+            # Remove directories
             shutil.rmtree(states)
             shutil.rmtree(trajectories)
 
             return True
         except:
             return False
+
+    def load(self, path, replace=True):
+        if replace:
+            self.record = Archive()
+            self.trajectory = LinkedTree()
+
+        try:
+            # Load archive data
+            with open(os.path.join(path, 'exploration.json'), 'r') as f:
+                archive = json.load(f)
+
+            # Load vars
+            with open(os.path.join(path, 'vars.json'), 'r') as f:
+                meta = json.load(f)
+
+                self.cellfn = types.FunctionType(marshal.loads(meta['cellfn']), globals(), 'cellfn')
+                self.hashfn = types.FunctionType(marshal.loads(meta['hashfn']), globals(), 'hashfn')
+
+                self.repeat = meta['repeat']
+                self.nsteps = meta['nsteps']
+                self.frames = meta['frames']
+                self.method = meta['method']
+
+                self.iterations = meta['iterations']
+                self.highscore = meta['highscore']
+
+                if self.env.env_id != meta['env']:
+                    self.close()
+                    self.env = name2env[meta['env']]
+
+                self.env.seed(meta['seed'])
+                self.seed = meta['seed']
+
+            # Update archive with file data
+            for code, info in archive.items():
+                self.record[int(code)].load(info)
+
+            # Update PYTHONHASHSEED
+            with open(os.path.join(path, '.PYTHONHASHSEED'), 'r') as f:
+                self.setseed(int(f.read()))
+
+            # Load emulator ram states to their corresponding cells
+            with tarfile.open(os.path.join(path, 'ram.tar.gz'), 'r:gz') as tar:
+                for member in tar.getmembers():
+                    f = tar.extractfile(member)
+                    if f is not None:
+                        code = int(member.name[2:-7])
+                        data = gzip.decompress(f.read())
+                        stream = io.BytesIO(data)
+                        ram = np.load(stream)
+                        self.record[code].ram = ram
+
+            # Build trajectory tree
+            with tarfile.open(os.path.join(path, 'trajectory.tar.gz'), 'r:gz') as tar:
+                for member in tar.getmembers():
+                    f = tar.extractfile(member)
+                    if f is not None:
+                        code = int(member.name[2:-7])
+                        data = gzip.decompress(f.read())
+                        stream = io.BytesIO(data)
+                        trajectory = np.load(stream)
+                        self.record[code].length = len(trajectory)
+                        self.record[code].node = self.trajectory.add(trajectory, code)
+
+            return True
+        except:
+            return False
+
+    def close(self):
+        self.env.close()

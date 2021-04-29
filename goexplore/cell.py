@@ -59,3 +59,24 @@ class Cell:
         self.times_chosen = 0
         self.times_chosen_since_new = 0
         self.recompute_score()
+
+    def save(self):
+        return {
+            'reward': self.reward,
+            'selection': {
+                'score': self.score,
+                'counts': {
+                    'times chosen': self.times_chosen,
+                    'times chosen since new': self.times_chosen_since_new,
+                    'times seen': self.times_seen
+                }
+            }
+        }
+
+    def load(self, info):
+        self.reward = info['reward']
+        self.score = info['selection']['score']
+
+        self.times_seen = info['selection']['counts']['times seen']
+        self.times_chosen = info['selection']['counts']['times chosen']
+        self.times_chosen_since_new = info['selection']['counts']['times chosen since new']
