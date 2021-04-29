@@ -180,7 +180,6 @@ class GoExplore:
         method : str
             Method for return. Either 'ram' (default) or 'trajectory'.
         """
-        self.saveobs = saveobs
         self.cellfn = cellfn
         self.hashfn = hashfn
         self.repeat = repeat
