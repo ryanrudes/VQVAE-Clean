@@ -87,7 +87,7 @@ class GoExplore:
         """
         return len(self.archive)
 
-    def log(self, verbose, console=Console()):
+    def log(self, verbose, console=Console(), delimeter=' ', separator=True):
         """Logs basic information to the console
 
         * 0: no printout
@@ -162,6 +162,7 @@ class GoExplore:
                    nsteps=100,
                    seed=42,
                    method='ram',
+                   saveobs=False,
                    **kwargs):
         """Initialize the algorithm.
 
@@ -179,7 +180,10 @@ class GoExplore:
             Environment seed.
         method : str
             Method for return. Either 'ram' (default) or 'trajectory'.
+        saveobs : bool
+            Whether to save observations for each cell
         """
+        self.saveobs = saveobs
         self.cellfn = cellfn
         self.hashfn = hashfn
         self.repeat = repeat
@@ -211,6 +215,9 @@ class GoExplore:
         self.trajectory = LinkedTree()
 
         cell = self.archive[code]
+
+        if saveobs:
+            cell.observation = observation
 
         cell.node = self.trajectory.node
         self.trajectory.node.assign(code)
@@ -283,6 +290,9 @@ class GoExplore:
 
             cell.node = self.trajectory.node
             self.trajectory.node.assign(code)
+
+            if self.saveobs:
+                cell.observation = observation
 
             cell.setstate(self.getstate())
             self.discovered += 1
@@ -417,13 +427,13 @@ class GoExplore:
                 else:
                     progress.update(task, completed = self.frames, refresh = True)
 
-                self.log(verbose, progress.console)
+                self.log(verbose, progress.console, delimeter, separator)
                 iteration += 1
 
     def save(self, path):
         """Save all data representing the current state of the algorithm.
 
-        * RAM States
+        * RAM states
         * PYTHONHASHSEED
         * Trajectories
         * Algorithm variables
@@ -575,16 +585,15 @@ class GoExplore:
         """Refresh the archive"""
         new = Archive()
         for code, cell in self.archive.items():
-            env.env.restore_full_state(cell.ram)
-            observation = env.render(mode = 'rgb_array')
-            code = self.hashfn(self.cellfn(observation))
-            if code in new:
-                if cell.beats(new[code]):
-                    cell.node.assign(code)
-                    new[code] = cell
+            self.env.env.restore_full_state(cell.ram)
+            new_code = self.hashfn(self.cellfn(cell.observation))
+            if new_code in new:
+                if cell.beats(new[new_code]):
+                    cell.node.assign(new_code)
+                    new[new_code] = cell
             else:
-                cell.node.assign(code)
-                new[code] = cell
+                cell.node.assign(new_code)
+                new[new_code] = cell
         self.archive = new
 
     def close(self):
