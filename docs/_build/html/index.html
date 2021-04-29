@@ -1,0 +1,448 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Welcome to VQVAE-Clean’s documentation! &mdash; VQVAE-Clean  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="#" class="icon icon-home"> VQVAE-Clean
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Welcome to VQVAE-Clean’s documentation!</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+<li><a class="reference internal" href="#goexplore">GoExplore</a></li>
+</ul>
+</div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">VQVAE-Clean</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Welcome to VQVAE-Clean’s documentation!</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="welcome-to-vqvae-clean-s-documentation">
+<h1>Welcome to VQVAE-Clean’s documentation!<a class="headerlink" href="#welcome-to-vqvae-clean-s-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+<div class="section" id="goexplore">
+<h1>GoExplore<a class="headerlink" href="#goexplore" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="goexplore.algorithm.GoExplore">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">goexplore.algorithm.</span></code><code class="sig-name descname"><span class="pre">GoExplore</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hashseed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore" title="Permalink to this definition">¶</a></dt>
+<dd><p>GoExplore algorithm in the form of a class implementation.</p>
+<dl class="simple">
+<dt>env<span class="classifier">GymSpecialWrapper</span></dt><dd><p>Environment</p>
+</dd>
+<dt>hashseed<span class="classifier">int</span></dt><dd><p>Python random seed for <code class="xref py py-func docutils literal notranslate"><span class="pre">hash()</span></code> function</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.act">
+<code class="sig-name descname"><span class="pre">act</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">render</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.act"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.act" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform one emulator step.</p>
+<dl class="simple">
+<dt>render<span class="classifier">bool</span></dt><dd><p>Whether or not to render the frame following the emulator step.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>numpy.ndarray</dt><dd><p>observation</p>
+</dd>
+<dt>float</dt><dd><p>reward</p>
+</dd>
+<dt>bool:</dt><dd><p>terminal</p>
+</dd>
+<dt>dict:</dt><dd><p>info</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.archivesize">
+<code class="sig-name descname"><span class="pre">archivesize</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.archivesize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.archivesize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the size of the archive</p>
+<dl class="simple">
+<dt>int</dt><dd><p>Size of archive (number of cells)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.close">
+<code class="sig-name descname"><span class="pre">close</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close the environment</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.initialize">
+<code class="sig-name descname"><span class="pre">initialize</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">cellfn=&lt;function</span> <span class="pre">cellfn&gt;</span></em>, <em class="sig-param"><span class="pre">hashfn=&lt;function</span> <span class="pre">hashfn&gt;</span></em>, <em class="sig-param"><span class="pre">repeat=0.95</span></em>, <em class="sig-param"><span class="pre">nsteps=100</span></em>, <em class="sig-param"><span class="pre">seed=42</span></em>, <em class="sig-param"><span class="pre">method='ram'</span></em>, <em class="sig-param"><span class="pre">**kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the algorithm.</p>
+<dl class="simple">
+<dt>cellfn<span class="classifier">callable</span></dt><dd><p>Function that returns cell given an observation.</p>
+</dd>
+<dt>hashfn<span class="classifier">callable</span></dt><dd><p>Function that returns hash code given a cell.</p>
+</dd>
+<dt>repeat<span class="classifier">float</span></dt><dd><p>Probability of repeating the previous action.</p>
+</dd>
+<dt>nsteps<span class="classifier">int</span></dt><dd><p>Maximum duration of each iteration of exploration in emulator steps.</p>
+</dd>
+<dt>seed<span class="classifier">int</span></dt><dd><p>Environment seed.</p>
+</dd>
+<dt>method<span class="classifier">str</span></dt><dd><p>Method for return. Either ‘ram’ (default) or ‘trajectory’.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.load">
+<code class="sig-name descname"><span class="pre">load</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Restores data saved with <a class="reference internal" href="#goexplore.algorithm.GoExplore.save" title="goexplore.algorithm.GoExplore.save"><code class="xref py py-func docutils literal notranslate"><span class="pre">save()</span></code></a></p>
+<dl class="simple">
+<dt>path<span class="classifier">str</span></dt><dd><p>Path to save information. Creates the directory if it does not already exist.</p>
+</dd>
+<dt>overwrite<span class="classifier">bool</span></dt><dd><p>Whether to overwrite completely or merge with existing data</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>bool</dt><dd><p>Whether the operation was successful.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.log">
+<code class="sig-name descname"><span class="pre">log</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">verbose</span></em>, <em class="sig-param"><span class="pre">console=&lt;console</span> <span class="pre">width=158</span> <span class="pre">ColorSystem.TRUECOLOR&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logs basic information to the console</p>
+<ul class="simple">
+<li><p>0: no printout</p></li>
+<li><p>1: iterations/cells/frames/highscore</p></li>
+<li><p>2: 1 + archive memory size/trajectory memory size</p></li>
+</ul>
+<dl class="simple">
+<dt>verbose<span class="classifier">int</span></dt><dd><p>Verbosity of the printout, ranges from 0-2</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.ram">
+<code class="sig-name descname"><span class="pre">ram</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.ram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.ram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the RAM state of the environment emulator</p>
+<dl class="simple">
+<dt>numpy.ndarray</dt><dd><p>RAM state</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.random">
+<code class="sig-name descname"><span class="pre">random</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.random"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.random" title="Permalink to this definition">¶</a></dt>
+<dd><p>Select an action randomly</p>
+<dl class="simple">
+<dt>int</dt><dd><p>Random action selected from the environment action space</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.restore">
+<code class="sig-name descname"><span class="pre">restore</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.restore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.restore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Restores to a chosen cell</p>
+<dl class="simple">
+<dt>cell<span class="classifier">Cell</span></dt><dd><p>Cell for returning</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.run">
+<code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">render</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_frames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_traj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run a full iteration of the algorithm.</p>
+<dl class="simple">
+<dt>render<span class="classifier">bool</span></dt><dd><p>Whether or not to render this iteration.</p>
+</dd>
+<dt>debug<span class="classifier">bool</span></dt><dd><p>Whether or not to apply a delay to slow down rendering</p>
+</dd>
+<dt>delay<span class="classifier">float</span></dt><dd><p>Delay in seconds between frames rendering in debug mode</p>
+</dd>
+<dt>return_states<span class="classifier">bool</span></dt><dd><p>Whether to return the observations throughout this iteration</p>
+</dd>
+<dt>return_traj<span class="classifier">bool</span></dt><dd><p>Whether to also return the frames emulated when returning in ‘trajectory’ mode</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>list</dt><dd><p>list of numpy.ndarray observations, if return_states or return_traj is True</p>
+</dd>
+<dt>NoneType</dt><dd><p>otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.run_for">
+<code class="sig-name descname"><span class="pre">run_for</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">duration</span></em>, <em class="sig-param"><span class="pre">verbose=1</span></em>, <em class="sig-param"><span class="pre">units='iterations'</span></em>, <em class="sig-param"><span class="pre">renderfn=&lt;function</span> <span class="pre">GoExplore.&lt;lambda&gt;&gt;</span></em>, <em class="sig-param"><span class="pre">delimeter='</span> <span class="pre">'</span></em>, <em class="sig-param"><span class="pre">separator=True</span></em>, <em class="sig-param"><span class="pre">debug=False</span></em>, <em class="sig-param"><span class="pre">delay=0.01</span></em>, <em class="sig-param"><span class="pre">desc='Running'</span></em>, <em class="sig-param"><span class="pre">**kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.run_for"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.run_for" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run algorithm for a certain duration</p>
+<dl class="simple">
+<dt>duration<span class="classifier">int</span></dt><dd><p>Duration to run algorithm.</p>
+</dd>
+<dt>verbose<span class="classifier">int</span></dt><dd><p>Verbosity of printout.</p>
+</dd>
+<dt>units<span class="classifier">str</span></dt><dd><p>Units indicating how to interpret duration, ie. ‘iterations’ or ‘frames’</p>
+</dd>
+<dt>renderfn<span class="classifier">callable</span></dt><dd><p>Function that takes the current iteration and returns a boolean indicating whether to render.</p>
+</dd>
+<dt>debug<span class="classifier">bool</span></dt><dd><p>Whether or not to apply a delay to slow down rendering</p>
+</dd>
+<dt>delay<span class="classifier">float</span></dt><dd><p>Delay in seconds between frames rendering in debug mode</p>
+</dd>
+<dt>desc<span class="classifier">str</span></dt><dd><p>Description for progress bar. Defaults to ‘Running’.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.save">
+<code class="sig-name descname"><span class="pre">save</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save all data representing the current state of the algorithm.</p>
+<ul class="simple">
+<li><p>RAM States</p></li>
+<li><p>PYTHONHASHSEED</p></li>
+<li><p>Trajectories</p></li>
+<li><p>Algorithm variables</p></li>
+<li><p>Cell metadata, ie. counts and the like</p></li>
+</ul>
+<p>All of this data is stored as efficiently as possible,
+compressed in .tar.gz archives, and can be restored using
+the <a class="reference internal" href="#goexplore.algorithm.GoExplore.load" title="goexplore.algorithm.GoExplore.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">load()</span></code></a> function.</p>
+<dl class="simple">
+<dt>path<span class="classifier">str</span></dt><dd><p>Path to save information. Creates the directory if it does not already exist.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>bool</dt><dd><p>Whether the operation was successful.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.setseed">
+<code class="sig-name descname"><span class="pre">setseed</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.setseed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.setseed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set PYTHONHASHSEED environment variable</p>
+<dl class="simple">
+<dt>seed<span class="classifier">int</span></dt><dd><p>Python random seed for <code class="xref py py-func docutils literal notranslate"><span class="pre">hash()</span></code> function</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="goexplore.algorithm.GoExplore.update">
+<code class="sig-name descname"><span class="pre">update</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/goexplore/algorithm.html#GoExplore.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.algorithm.GoExplore.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines whether or not to update a cell.</p>
+<dl class="simple">
+<dt>cell<span class="classifier">Cell</span></dt><dd><p>A preexisting cell from the archive.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>bool</dt><dd><p>Indication of whether or not the current emulator state improves upon the existing cell state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="goexplore.archive.Archive">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">goexplore.archive.</span></code><code class="sig-name descname"><span class="pre">Archive</span></code><a class="reference internal" href="_modules/goexplore/archive.html#Archive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#goexplore.archive.Archive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Archive object subclassed from <code class="xref py py-class docutils literal notranslate"><span class="pre">defaultdict</span></code></p>
+<p>Overloads <code class="xref py py-func docutils literal notranslate"><span class="pre">__sizeof__()</span></code> method to compute the size of the archive in memory.</p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Ryan Rudes.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

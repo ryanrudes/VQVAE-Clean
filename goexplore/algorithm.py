@@ -30,6 +30,17 @@ import os
 import io
 
 class GoExplore:
+    """
+    GoExplore algorithm in the form of a class implementation.
+
+    Parameters
+    ----------
+    env : GymSpecialWrapper
+        Environment
+    hashseed : int
+        Python random seed for :func:`~hash()` function
+    """
+
     metadata = {'method': ['ram', 'trajectory']}
 
     def __init__(self, env, hashseed=42):
@@ -54,24 +65,64 @@ class GoExplore:
         }
 
     def setseed(self, seed):
+        """Set PYTHONHASHSEED environment variable
+
+        Parameters
+        ----------
+        seed : int
+            Python random seed for :func:`~hash()` function
+        """
         self.hashseed = seed
         if not os.environ.get('PYTHONHASHSEED'):
             os.environ['PYTHONHASHSEED'] = str(seed)
             os.execv(sys.executable, ['python3'] + sys.argv)
 
     def archivesize(self):
+        """Returns the size of the archive
+
+        Returns
+        -------
+        int
+            Size of archive (number of cells)
+        """
         return len(self.record)
 
     def log(self, verbose, console=Console()):
+        """Logs basic information to the console
+
+        * 0: no printout
+        * 1: iterations/cells/frames/highscore
+        * 2: 1 + archive memory size/trajectory memory size
+
+        Parameters
+        ----------
+        verbose : int
+            Verbosity of the printout, ranges from 0-2
+        """
         if verbose == 1:
             console.print(self.report())
         elif verbose == 2:
             console.print(self.report() + ', ' + self.status(delimeter, separator))
 
     def ram(self):
+        """Returns the RAM state of the environment emulator
+
+        Returns
+        -------
+        numpy.ndarray
+            RAM state
+
+        """
         return self.env.env.clone_full_state()
 
     def restore(self, cell):
+        """Restores to a chosen cell
+
+        Parameters
+        ----------
+        cell : Cell
+            Cell for returning
+        """
         ram, reward, length = cell.choose()
         self.reward = reward
         self.length = length
@@ -88,6 +139,13 @@ class GoExplore:
                 yield observation
 
     def random(self):
+        """Select an action randomly
+
+        Returns
+        -------
+        int
+            Random action selected from the environment action space
+        """
         return self.env.action_space.sample()
 
     def getstate(self):
@@ -105,6 +163,23 @@ class GoExplore:
                    seed=42,
                    method='ram',
                    **kwargs):
+        """Initialize the algorithm.
+
+        Parameters
+        ----------
+        cellfn : callable
+            Function that returns cell given an observation.
+        hashfn : callable
+            Function that returns hash code given a cell.
+        repeat : float
+            Probability of repeating the previous action.
+        nsteps : int
+            Maximum duration of each iteration of exploration in emulator steps.
+        seed : int
+            Environment seed.
+        method : str
+            Method for return. Either 'ram' (default) or 'trajectory'.
+        """
         self.cellfn = cellfn
         self.hashfn = hashfn
         self.repeat = repeat
@@ -144,10 +219,43 @@ class GoExplore:
         self.restore_code = code
 
     def update(self, cell):
+        """Determines whether or not to update a cell.
+
+        Parameters
+        ----------
+        cell : Cell
+            A preexisting cell from the archive.
+
+        Returns
+        -------
+        bool
+            Indication of whether or not the current emulator state improves upon the existing cell state.
+        """
         new = cell.visit()
         return new or self.reward > cell.reward or self.reward == cell.reward and self.length < cell.length
 
     def act(self, render=False):
+        """Perform one emulator step.
+
+        Parameters
+        ----------
+        render : bool
+            Whether or not to render the frame following the emulator step.
+
+        Returns
+        -------
+        numpy.ndarray
+            observation
+
+        float
+            reward
+
+        bool:
+            terminal
+
+        dict:
+            info
+        """
         if np.random.random() > self.repeat:
             self.action = self.random()
 
@@ -186,7 +294,30 @@ class GoExplore:
             debug=False,
             delay=0.01,
             return_states=False,
-            max_frames=np.inf):
+            max_frames=np.inf,
+            return_traj=False):
+        """Run a full iteration of the algorithm.
+
+        Parameters
+        ----------
+        render : bool
+            Whether or not to render this iteration.
+        debug : bool
+            Whether or not to apply a delay to slow down rendering
+        delay : float
+            Delay in seconds between frames rendering in debug mode
+        return_states : bool
+            Whether to return the observations throughout this iteration
+        return_traj : bool
+            Whether to also return the frames emulated when returning in 'trajectory' mode
+
+        Returns
+        -------
+        list
+            list of numpy.ndarray observations, if return_states or return_traj is True
+        NoneType
+            otherwise
+        """
         self.discovered = 0
 
         if return_states:
@@ -219,8 +350,11 @@ class GoExplore:
         traj = list(self.restore(restore_cell))
         self.restore_code = restore_code
 
-        if return_states:
+        if return_traj:
             return observations + traj
+
+        if return_states:
+            return observations
 
     def run_for(self,
                 duration,
@@ -233,6 +367,25 @@ class GoExplore:
                 delay=0.01,
                 desc='Running',
                 **kwargs):
+        """Run algorithm for a certain duration
+
+        Parameters
+        ----------
+        duration : int
+            Duration to run algorithm.
+        verbose : int
+            Verbosity of printout.
+        units : str
+            Units indicating how to interpret duration, ie. 'iterations' or 'frames'
+        renderfn : callable
+            Function that takes the current iteration and returns a boolean indicating whether to render.
+        debug : bool
+            Whether or not to apply a delay to slow down rendering
+        delay : float
+            Delay in seconds between frames rendering in debug mode
+        desc : str
+            Description for progress bar. Defaults to 'Running'.
+        """
         ensure_type(verbose, int, 'verbose', 'logging verbosity')
         ensure_range(verbose, int, 'verbose', 'logging verbosity', 0, 2)
         ensure_from(units, ['iterations', 'frames'], 'units', 'units of duration')
@@ -268,6 +421,28 @@ class GoExplore:
                 iteration += 1
 
     def save(self, path):
+        """Save all data representing the current state of the algorithm.
+
+        * RAM States
+        * PYTHONHASHSEED
+        * Trajectories
+        * Algorithm variables
+        * Cell metadata, ie. counts and the like
+
+        All of this data is stored as efficiently as possible,
+        compressed in .tar.gz archives, and can be restored using
+        the :func:`~load()` function.
+
+        Parameters
+        ----------
+        path : str
+            Path to save information. Creates the directory if it does not already exist.
+
+        Returns
+        -------
+        bool
+            Whether the operation was successful.
+        """
         try:
             # Make the save directory if it does not already exist
             if not os.path.exists(path):
@@ -315,8 +490,22 @@ class GoExplore:
         except:
             return False
 
-    def load(self, path, replace=True):
-        if replace:
+    def load(self, path, overwrite=True):
+        """Restores data saved with :func:`~save()`
+
+        Parameters
+        ----------
+        path : str
+            Path to save information. Creates the directory if it does not already exist.
+        overwrite : bool
+            Whether to overwrite completely or merge with existing data
+
+        Returns
+        -------
+        bool
+            Whether the operation was successful.
+        """
+        if overwrite:
             self.record = Archive()
             self.trajectory = LinkedTree()
 
@@ -383,4 +572,5 @@ class GoExplore:
             return False
 
     def close(self):
+        """Close the environment"""
         self.env.close()
