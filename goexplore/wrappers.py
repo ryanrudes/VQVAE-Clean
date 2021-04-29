@@ -8,7 +8,7 @@ from .termination import *
 class SpecialWrapper(gym.Wrapper):
     metadata = {'render.modes': ['human', 'rgb_array', 'encoding']}
 
-    def __init__(self, env, terminal_condition):
+    def __init__(self, env, terminal_condition=None):
         super(SpecialWrapper, self).__init__(env)
         self.terminal_condition = terminal_condition
 
@@ -17,7 +17,7 @@ class SpecialWrapper(gym.Wrapper):
 
     def step(self, action):
         observation, reward, terminal, info = self.env.step(action)
-        if not terminal:
+        if not terminal and not self.terminal_condition is None:
             terminal = self.terminal_condition.isterminal(reward, terminal, info)
         return observation, reward, terminal, info
 
@@ -68,27 +68,37 @@ class FrameStack(gym.Wrapper):
 class GymSpecialWrapper(SpecialWrapper):
     def __init__(self, env_id, terminal_condition):
         super(GymSpecialWrapper, self).__init__(gym.make(env_id + 'Deterministic-v4'), terminal_condition)
+        self.env_id = env_id
 
 # Environment Wrappers
 MontezumaRevenge = lambda: GymSpecialWrapper('MontezumaRevenge', TerminateOnLifeLoss(6))
 SpaceInvaders    = lambda: GymSpecialWrapper('SpaceInvaders',    TerminateOnLifeLoss(3))
 VideoPinball     = lambda: GymSpecialWrapper('VideoPinball',     TerminateOnLifeLoss(3))
+Asteroids        = lambda: GymSpecialWrapper('Asteroids',        TerminateOnLifeLoss(4))
+BankHeist        = lambda: GymSpecialWrapper('BankHeist',        TerminateOnLifeLoss(4))
+Centipede        = lambda: GymSpecialWrapper('Centipede',        TerminateOnLifeLoss(3))
 Breakout         = lambda: GymSpecialWrapper('Breakout',         TerminateOnLifeLoss(3))
+MsPacman         = lambda: GymSpecialWrapper('MsPacman',         TerminateOnLifeLoss(3))
+Freeway          = lambda: GymSpecialWrapper('Freeway')
+Pitfall          = lambda: GymSpecialWrapper('Pitfall',          TerminalConditionGroup([TerminateOnNegativeReward(), TerminateOnLifeLoss(3)]))
+AirRaid          = lambda: GymSpecialWrapper('AirRaid',          TerminateOnLifeLoss(1))
+Alien            = lambda: GymSpecialWrapper('Alien',            TerminateOnLifeLoss(3))
 Qbert            = lambda: GymSpecialWrapper('Qbert',            TerminateOnLifeLoss(4))
-
-Pong             = lambda: GymSpecialWrapper('Pong', TerminateOnNegativeReward())
-
-Pitfall          = lambda: GymSpecialWrapper('Pitfall', TerminalConditionGroup([
-                                                            TerminateOnNegativeReward(),
-                                                            TerminateOnLifeLoss(3)
-                                                        ]))
+Pong             = lambda: GymSpecialWrapper('Pong',             TerminateOnNegativeReward())
 
 name2env = {
     'MontezumaRevenge': MontezumaRevenge,
     'SpaceInvaders': SpaceInvaders,
     'VideoPinball': VideoPinball,
+    'Asteroids': Asteroids,
+    'BankHeist': BankHeist,
+    'Centipede': Centipede,
     'Breakout': Breakout,
+    'MsPacman': MsPacman,
+    'Freeway': Freeway,
+    'Pitfall': Pitfall,
+    'AirRaid': AirRaid,
+    'Alien': Alien,
     'Qbert': Qbert,
-    'Pong': Pong,
-    'Pitfall': Pitfall
+    'Pong': Pong
 }
