@@ -12,8 +12,8 @@ def renderfn(iterations):
 def hashfn(cell):
     return md5(cell.data.tobytes()).hexdigest()
 
-EXPERIMENTS = 1
-DURATION = 1000
+EXPERIMENTS = 20
+DURATION = 300000
 UNITS = 'frames'
 
 RENDERFN = renderfn
