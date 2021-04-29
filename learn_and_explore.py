@@ -42,6 +42,7 @@ def encode_fn():
     return model, encode
 
 def data_stream():
+    iteration = 0
     while True:
         for observation in goexplore.run(return_states = True):
             x = cv2.resize(observation, (160, 160), interpolation = cv2.INTER_AREA)
@@ -49,6 +50,8 @@ def data_stream():
             x = transform(x)
             x = x.to(device)
             yield x, 0
+        if iteration % 10 == 0:
+            goexplore.refresh()
 
 class ObservationDataset(IterableDataset):
     def __init__(self):
@@ -60,12 +63,12 @@ class ObservationDataset(IterableDataset):
 env = Qbert()
 goexplore = GoExplore(env)
 model, cellfn = encode_fn()
-goexplore.initialize(method = 'ram', cellfn = cellfn)
+goexplore.initialize(cellfn = cellfn, saveobs = True)
 
 dataset = ObservationDataset()
 loader = DataLoader(dataset, batch_size = 128)
 
-optimizer = optim.Adam(model.parameters(), lr = 3e-4) # 0.001
+optimizer = optim.Adam(model.parameters(), lr = 3e-4)
 scheduler = None
 
 start = str(time())
