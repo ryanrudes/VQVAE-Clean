@@ -45,8 +45,8 @@ class GoExplore:
 
     def __init__(self, env, hashseed=42):
         self.env = env
-        self.report = lambda: 'Iterations: %d, Cells: %d, Frames: %d, Max Reward: %d' % (self.iterations, len(self.record), self.frames, self.highscore)
-        self.status = lambda delimiter=' ', separator=True: 'Archive: %s, Trajectory: %s' % (prettysize(self.record, delimiter=delimiter, separator=separator, sizefn=getsizeof), prettysize(self.trajectory, delimiter=delimiter, separator=separator))
+        self.report = lambda: 'Iterations: %d, Cells: %d, Frames: %d, Max Reward: %d' % (self.iterations, len(self.archive), self.frames, self.highscore)
+        self.status = lambda delimiter=' ', separator=True: 'Archive: %s, Trajectory: %s' % (prettysize(self.archive, delimiter=delimiter, separator=separator, sizefn=getsizeof), prettysize(self.trajectory, delimiter=delimiter, separator=separator))
         self.setseed(hashseed)
 
     @property
@@ -85,7 +85,7 @@ class GoExplore:
         int
             Size of archive (number of cells)
         """
-        return len(self.record)
+        return len(self.archive)
 
     def log(self, verbose, console=Console()):
         """Logs basic information to the console
@@ -180,6 +180,7 @@ class GoExplore:
         method : str
             Method for return. Either 'ram' (default) or 'trajectory'.
         """
+        self.saveobs = saveobs
         self.cellfn = cellfn
         self.hashfn = hashfn
         self.repeat = repeat
@@ -200,7 +201,7 @@ class GoExplore:
         cell = self.cellfn(observation)
         code = self.hashfn(cell)
 
-        self.record = Archive()
+        self.archive = Archive()
         self.reward = 0
         self.action = 0
         self.length = 0
@@ -210,7 +211,7 @@ class GoExplore:
         self.iterations = 0
         self.trajectory = LinkedTree()
 
-        cell = self.record[code]
+        cell = self.archive[code]
 
         cell.node = self.trajectory.node
         self.trajectory.node.assign(code)
@@ -273,7 +274,7 @@ class GoExplore:
 
         cell = self.cellfn(observation)
         code = self.hashfn(cell)
-        cell = self.record[code]
+        cell = self.archive[code]
 
         self.trajectory.act(self.action)
 
@@ -336,16 +337,16 @@ class GoExplore:
                 sleep(delay)
 
         if self.discovered:
-            self.record[self.restore_code].led_to_improvement()
+            self.archive[self.restore_code].led_to_improvement()
 
         self.iterations += 1
 
-        codes = [*self.record]
-        probs = np.array([cell.score for cell in self.record.values()])
+        codes = [*self.archive]
+        probs = np.array([cell.score for cell in self.archive.values()])
         probs = probs / probs.sum()
 
         restore_code = np.random.choice(codes, p = probs)
-        restore_cell = self.record[restore_code]
+        restore_cell = self.archive[restore_code]
 
         traj = list(self.restore(restore_cell))
         self.restore_code = restore_code
@@ -462,7 +463,7 @@ class GoExplore:
             # Save emulator ram states and action trajectories to compressed .npy.gz archives
             # Collect archive data
             data = {}
-            for code, cell in self.record.items():
+            for code, cell in self.archive.items():
                 with gzip.GzipFile(os.path.join(states, f'{code}.npy.gz'), 'w') as f:
                     np.save(f, cell.ram)
 
@@ -506,7 +507,7 @@ class GoExplore:
             Whether the operation was successful.
         """
         if overwrite:
-            self.record = Archive()
+            self.archive = Archive()
             self.trajectory = LinkedTree()
 
         try:
@@ -538,7 +539,7 @@ class GoExplore:
 
             # Update archive with file data
             for code, info in archive.items():
-                self.record[int(code)].load(info)
+                self.archive[int(code)].load(info)
 
             # Update PYTHONHASHSEED
             with open(os.path.join(path, '.PYTHONHASHSEED'), 'r') as f:
@@ -553,7 +554,7 @@ class GoExplore:
                         data = gzip.decompress(f.read())
                         stream = io.BytesIO(data)
                         ram = np.load(stream)
-                        self.record[code].ram = ram
+                        self.archive[code].ram = ram
 
             # Build trajectory tree
             with tarfile.open(os.path.join(path, 'trajectory.tar.gz'), 'r:gz') as tar:
@@ -564,12 +565,28 @@ class GoExplore:
                         data = gzip.decompress(f.read())
                         stream = io.BytesIO(data)
                         trajectory = np.load(stream)
-                        self.record[code].length = len(trajectory)
-                        self.record[code].node = self.trajectory.add(trajectory, code)
+                        self.archive[code].length = len(trajectory)
+                        self.archive[code].node = self.trajectory.add(trajectory, code)
 
             return True
         except:
             return False
+
+    def refresh(self):
+        """Refresh the archive"""
+        new = Archive()
+        for code, cell in self.archive.items():
+            env.env.restore_full_state(cell.ram)
+            observation = env.render(mode = 'rgb_array')
+            code = self.hashfn(self.cellfn(observation))
+            if code in new:
+                if cell.beats(new[code]):
+                    cell.node.assign(code)
+                    new[code] = cell
+            else:
+                cell.node.assign(code)
+                new[code] = cell
+        self.archive = new
 
     def close(self):
         """Close the environment"""
