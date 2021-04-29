@@ -28,9 +28,6 @@ SEED = 42
 
 METHOD = 'ram'
 
-address = 'noreply.python.email.automation@gmail.com'
-password = 'eozej9sk-cue5v19f-g3bbv1qn'
-
 def callback(goexplore, experiment, root):
     path = os.path.join(root, 'experiments')
     if not os.path.exists(path):
@@ -56,9 +53,9 @@ for name, env in name2env.items():
                             renderfn = RENDERFN)
 
     experiment.run(DURATION, EXPERIMENTS,
-                   sendmail = False,
-                   address  = address,
-                   password = password,
+                   # sendmail = False,
+                   # address  = address,
+                   # password = password,
                    showinfo = False,
                    record   = record,
                    callback = callback,
