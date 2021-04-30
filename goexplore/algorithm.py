@@ -589,7 +589,7 @@ class GoExplore:
         ensure_from(method, ['ram', 'obs'], 'method', 'observation fetching method')
         if method == 'obs' and not self.saveobs:
             raise ValueError('Cannot use \'obs\' observation fetching method when saveobs is False')
-            
+
         new = Archive()
         for old_code, cell in self.archive.items():
             if method == 'ram':
