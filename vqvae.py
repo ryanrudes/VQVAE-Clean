@@ -220,6 +220,8 @@ class VQVAE(nn.Module):
         )
         self.dec = Decoder(embed_dim + embed_dim, in_channel, channel, n_res_block, n_res_channel, stride=4)
 
+        self.metrics = {'latent': [], 'reconstruction': []}
+
     def forward(self, input):
         quant_t, quant_b, diff, _, _ = self.encode(input)
         dec = self.decode(quant_t, quant_b)
@@ -276,6 +278,9 @@ class VQVAE(nn.Module):
             scheduler.step()
 
         optimizer.step()
+
+        self.metrics['reconstruction'].append(recon_loss)
+        self.metrics['latent'].append(latent_loss)
 
         return recon_loss, latent_loss
 
@@ -379,3 +384,15 @@ class VQVAE(nn.Module):
 
                 progress.update(train, description = f'epoch {epoch + 1}/{args.epoch}')
                 progress.advance(train)
+
+    def plot(self, savefig=False, savepath=None):
+        if savefig and savepath is None:
+            raise ValueError('When `savefig` is True, expected a str ')
+        fig = plt.figure(figsize = (7, 7))
+        maxx = 0
+        for key, values in data.items():
+            plt.plot(values, label = key)
+            maxx = max(maxx, len(values))
+        plt.xlim(0, maxx - 1)
+        plt.legend()
+        plt.show()
