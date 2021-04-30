@@ -33,7 +33,6 @@ def encode_fn():
             encoded, _, _, _, _ = model.encode(x)
 
         encoded = encoded.cpu().numpy()[0]
-        encoded = encoded // 0.5
         model.train()
         return encoded
 
