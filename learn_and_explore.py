@@ -4,6 +4,7 @@ from goexplore.utils import *
 from vqvae import VQVAE
 from rich import print
 from time import time
+import itertools
 import random
 import os
 
@@ -42,7 +43,7 @@ def encode_fn():
 def data_stream():
     global updates
     iteration = 0
-    a = 0 # mean_samps
+    a = 0
     FRAMES = 500_000
     UPDATES = 200_000
     repeat_obs = 16
@@ -50,19 +51,19 @@ def data_stream():
         iteration += 1
         observations = goexplore.run(return_states = True, return_traj = True)
 
-        a += (len(observations) - a) / iteration # mean_samps
-        n = FRAMES / (goexplore.frames / iteration) # total_iterations
+        a += (len(observations) - a) / iteration
+        n = FRAMES / (goexplore.frames / iteration)
         m = (2 * UPDATES - 2 * a * n) / (n ** 2 - n)
         y = int(a - m * iteration)
         updates += y
 
-        for i in range(y):
-            random.shuffle(observations)
-            for observation in observations:
-                x = cv2.resize(observation, (160, 160), interpolation = cv2.INTER_AREA)
-                x = transform(x)
-                x = x.to(device)
-                yield x, 0
+        observations = itertools.cycle(observations)
+
+        for i in range(y * BATCH_SIZE):
+            x = cv2.resize(next(observations), (160, 160), interpolation = cv2.INTER_AREA)
+            x = transform(x)
+            x = x.to(device)
+            yield x, 0
 
         if iteration % 10 == 0:
             goexplore.refresh()
@@ -75,6 +76,7 @@ class ObservationDataset(IterableDataset):
         return self.stream
 
 updates = 0
+BATCH_SIZE = 128
 
 env = Qbert()
 goexplore = GoExplore(env)
@@ -82,7 +84,7 @@ model, cellfn = encode_fn()
 goexplore.initialize(cellfn = cellfn, mode = 'trajectory')
 
 dataset = ObservationDataset()
-loader = DataLoader(dataset, batch_size = 128)
+loader = DataLoader(dataset, batch_size = BATCH_SIZE)
 
 optimizer = optim.Adam(model.parameters(), lr = 3e-4)
 scheduler = None
@@ -100,7 +102,3 @@ for i, (recon_loss, latent_loss, avg_mse, lr) in enumerate(model.train_epoch(0, 
     print (goexplore.report())
     if i % 1000 == 0:
         torch.save(model.state_dict(), os.path.join(checkpoint_path, 'vqvae_%s.pt' % i))
-
-"""
-200,000 batches over 500,000 steps
-"""
