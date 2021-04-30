@@ -57,10 +57,11 @@ def data_stream():
         y = int(a - m * iteration)
         updates += y
 
+        observations = [cv2.resize(x, (160, 160), interpolation = cv2.INTER_AREA) for x in observations]
         observations = itertools.cycle(observations)
 
         for i in range(y * BATCH_SIZE):
-            x = cv2.resize(next(observations), (160, 160), interpolation = cv2.INTER_AREA)
+            x = next(observations)
             x = transform(x)
             x = x.to(device)
             yield x, 0
