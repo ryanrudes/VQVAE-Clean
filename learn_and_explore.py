@@ -26,9 +26,7 @@ def encode_fn():
 
         with torch.no_grad():
             x = cv2.resize(x, (160, 160), interpolation = cv2.INTER_AREA)
-            # x = x / 255.0
             x = transform(x)
-            # x = x.permute(2, 0, 1)
             x = x.unsqueeze(0)
             x = x.to(device)
 
@@ -44,9 +42,8 @@ def encode_fn():
 def data_stream():
     iteration = 0
     while True:
-        for observation in goexplore.run(return_states = True):
+        for observation in goexplore.run(return_states = True, return_traj = True):
             x = cv2.resize(observation, (160, 160), interpolation = cv2.INTER_AREA)
-            # x = x / 255.0
             x = transform(x)
             x = x.to(device)
             yield x, 0
@@ -63,7 +60,7 @@ class ObservationDataset(IterableDataset):
 env = Qbert()
 goexplore = GoExplore(env)
 model, cellfn = encode_fn()
-goexplore.initialize(cellfn = cellfn, saveobs = True)
+goexplore.initialize(cellfn = cellfn, mode = 'trajectory')
 
 dataset = ObservationDataset()
 loader = DataLoader(dataset, batch_size = 128)
@@ -80,7 +77,7 @@ os.mkdir(sample_path)
 os.mkdir(checkpoint_path)
 
 for i, (recon_loss, latent_loss, avg_mse, lr) in enumerate(model.train_epoch(0, loader, optimizer, scheduler, device, sample_path)):
-    print (f'mse: {recon_loss:.5f}; latent: {latent_loss:.5f}; avg mse: {avg_mse:.5f}; lr: {lr:.5f}')
+    print (f'batches: {i + 1}; mse: {recon_loss:.5f}; latent: {latent_loss:.5f}; avg mse: {avg_mse:.5f}; lr: {lr:.5f}')
     print (goexplore.report())
     if i % 1000 == 0:
         torch.save(model.state_dict(), os.path.join(checkpoint_path, 'vqvae_%s.pt' % i))
