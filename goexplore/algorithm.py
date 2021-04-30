@@ -579,7 +579,7 @@ class GoExplore:
         new = Archive()
         for old_code, cell in self.archive.items():
             self.env.restore_full_state(cell.ram)
-            new_code = self.hashfn(self.cellfn(self.env.step(0)[0])))
+            new_code = self.hashfn(self.cellfn(self.env.step(0)[0]))
             if new_code in new:
                 if cell.beats(new[new_code]):
                     cell.node.assign(new_code)
