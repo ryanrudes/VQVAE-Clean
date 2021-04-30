@@ -1,595 +1,111 @@
-from .termination import *
-from .exceptions import *
-from .wrappers import *
-from .archive import *
-from .weights import *
-from .config import *
-from .powers import *
-from .utils import *
-from .cell import *
-from .tree import *
-
-from rich.traceback import install
-from rich.console import Console
-from rich.progress import *
-install()
-
-from collections import defaultdict
-from sys import getsizeof
-from time import sleep
-import numpy as np
-import inspect
-import marshal
-import tarfile
-import shutil
-import types
-import json
-import gzip
-import sys
+from goexplore.algorithm import GoExplore
+from goexplore.wrappers import *
+from goexplore.utils import *
+from vqvae import VQVAE
+from rich import print
+from time import time
+import random
 import os
-import io
 
-class GoExplore:
-    """
-    GoExplore algorithm in the form of a class implementation.
+from torch.utils.data import Dataset, IterableDataset, DataLoader
+from torchvision import transforms
+from torch import optim
+import torch
 
-    Parameters
-    ----------
-    env : GymSpecialWrapper
-        Environment
-    hashseed : int
-        Python random seed for :func:`~hash()` function
-    """
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    metadata = {'method': ['ram', 'trajectory']}
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+])
 
-    def __init__(self, env, hashseed=42):
-        self.env = env
-        self.report = lambda: 'Iterations: %d, Cells: %d, Frames: %d, Max Reward: %d' % (self.iterations, len(self.archive), self.frames, self.highscore)
-        self.status = lambda delimiter=' ', separator=True: 'Archive: %s, Trajectory: %s' % (prettysize(self.archive, delimiter=delimiter, separator=separator, sizefn=getsizeof), prettysize(self.trajectory, delimiter=delimiter, separator=separator))
-        self.setseed(hashseed)
+def encode_fn():
+    model = VQVAE().to(device)
 
-    @property
-    def __dict__(self):
-        return {
-            'env': self.env.env_id,
-            'seed': self.seed,
-            'method': self.method,
-            'repeat': self.repeat,
-            'nsteps': self.nsteps,
-            'highscore': self.highscore,
-            'frames': self.frames,
-            'iterations': self.iterations,
-            'cellfn': inspect.getsource(self.cellfn),
-            'hashfn': inspect.getsource(self.hashfn),
-        }
+    def encode(x):
+        model.eval()
 
-    def setseed(self, seed):
-        """Set PYTHONHASHSEED environment variable
+        with torch.no_grad():
+            x = cv2.resize(x, (160, 160), interpolation = cv2.INTER_AREA)
+            x = transform(x)
+            x = x.unsqueeze(0)
+            x = x.to(device)
 
-        Parameters
-        ----------
-        seed : int
-            Python random seed for :func:`~hash()` function
-        """
-        self.hashseed = seed
-        if not os.environ.get('PYTHONHASHSEED'):
-            os.environ['PYTHONHASHSEED'] = str(seed)
-            os.execv(sys.executable, ['python3'] + sys.argv)
+            _, _, _, id_t, id_b = model.encode(x)
 
-    def archivesize(self):
-        """Returns the size of the archive
+        id_t = id_t.cpu().numpy()
+        id_b = id_b.cpu().numpy()
 
-        Returns
-        -------
-        int
-            Size of archive (number of cells)
-        """
-        return len(self.archive)
+        model.train()
 
-    def log(self, verbose, console=Console(), delimeter=' ', separator=True):
-        """Logs basic information to the console
+        return id_t, id_b
 
-        * 0: no printout
-        * 1: iterations/cells/frames/highscore
-        * 2: 1 + archive memory size/trajectory memory size
+    return model, encode
 
-        Parameters
-        ----------
-        verbose : int
-            Verbosity of the printout, ranges from 0-2
-        """
-        if verbose == 1:
-            console.print(self.report())
-        elif verbose == 2:
-            console.print(self.report() + ', ' + self.status(delimeter, separator))
+def hashfn(x):
+    return hash(x[0].data.tobytes() + x[1].data.tobytes())
 
-    def ram(self):
-        """Returns the RAM state of the environment emulator
+def data_stream():
+    global updates
+    iteration = 0
+    a = 0
+    FRAMES = 500_000
+    UPDATES = 200_000
+    repeat_obs = 16
+    while True:
+        iteration += 1
+        observations = goexplore.run(return_states = True, return_traj = True)
 
-        Returns
-        -------
-        numpy.ndarray
-            RAM state
+        a += (len(observations) - a) / iteration
+        n = FRAMES / (goexplore.frames / iteration)
+        m = (2 * UPDATES - 2 * a * n) / (n ** 2 - n)
+        y = int(a - m * iteration)
 
-        """
-        return self.env.clone_full_state()
+        observations = [cv2.resize(x, (160, 160), interpolation = cv2.INTER_AREA) for x in observations]
 
-    def restore(self, cell):
-        """Restores to a chosen cell
+        for i in range(y):
+            random.shuffle(observations)
+            for x in observations[:BATCH_SIZE]:
+                x = transform(x)
+                x = x.to(device)
+                yield x, 0
 
-        Parameters
-        ----------
-        cell : Cell
-            Cell for returning
-        """
-        ram, reward, length = cell.choose()
-        self.reward = reward
-        self.length = length
-        self.trajectory.set(cell.node)
-        self.env.reset()
+            updates += 1
 
-        if self.method == 'ram':
-            self.env.restore_full_state(ram)
-        else:
-            trajectory = self.trajectory.get_trajectory()
-            while trajectory:
-                action = trajectory.pop()
-                observation, reward, terminal, info = self.env.step(action)
-                yield observation
+        if iteration % 10 == 0:
+            goexplore.refresh()
 
-    def random(self):
-        """Select an action randomly
+class ObservationDataset(IterableDataset):
+    def __init__(self):
+        self.stream = data_stream()
 
-        Returns
-        -------
-        int
-            Random action selected from the environment action space
-        """
-        return self.env.action_space.sample()
+    def __iter__(self):
+        return self.stream
 
-    def getstate(self):
-        return (
-            self.ram() if self.method == 'ram' else None,
-            self.reward,
-            self.length,
-        )
+updates = 0
+BATCH_SIZE = 128
 
-    def initialize(self,
-                   cellfn=cellfn,
-                   hashfn=hashfn,
-                   repeat=0.95,
-                   nsteps=100,
-                   seed=42,
-                   method='ram',
-                   **kwargs):
-        """Initialize the algorithm.
+env = Qbert()
+goexplore = GoExplore(env)
+model, cellfn = encode_fn()
+goexplore.initialize(cellfn = cellfn, hashfn = hashfn, mode = 'trajectory', saveobs = True)
 
-        Parameters
-        ----------
-        cellfn : callable
-            Function that returns cell given an observation.
-        hashfn : callable
-            Function that returns hash code given a cell.
-        repeat : float
-            Probability of repeating the previous action.
-        nsteps : int
-            Maximum duration of each iteration of exploration in emulator steps.
-        seed : int
-            Environment seed.
-        method : str
-            Method for return. Either 'ram' (default) or 'trajectory'.
-        """
-        self.cellfn = cellfn
-        self.hashfn = hashfn
-        self.repeat = repeat
-        self.nsteps = nsteps
-        self.method = method
-        self.seed = seed
+dataset = ObservationDataset()
+loader = DataLoader(dataset, batch_size = BATCH_SIZE)
 
-        ensure_type(repeat, float, 'repeat', 'action repeat probability')
-        ensure_range(repeat, float, 'repeat', 'action repeat probability', 0, 1)
+optimizer = optim.Adam(model.parameters(), lr = 3e-4)
+scheduler = None
 
-        ensure_type(nsteps, int, 'nsteps', 'max explore duration')
-        ensure_range(nsteps, int, 'nsteps', 'max explore duration', minn=1)
-        ensure_from(method, self.metadata['method'], 'method', 'return method')
+start = str(time())
+run_path = os.path.join('runs', start)
+sample_path = os.path.join(run_path, 'sample')
+checkpoint_path = os.path.join(run_path, 'checkpoint')
+os.mkdir(run_path)
+os.mkdir(sample_path)
+os.mkdir(checkpoint_path)
 
-        self.env.seed(seed)
-        observation = self.env.reset()
-
-        cell = self.cellfn(observation)
-        code = self.hashfn(cell)
-
-        self.archive = Archive()
-        self.reward = 0
-        self.action = 0
-        self.length = 0
-        self.frames = 0
-        self.highscore = 0
-        self.discovered = 0
-        self.iterations = 0
-        self.trajectory = LinkedTree()
-
-        cell = self.archive[code]
-
-        cell.node = self.trajectory.node
-        self.trajectory.node.assign(code)
-        cell.visit()
-        cell.setstate(self.getstate())
-        self.restore_code = code
-
-    def update(self, cell):
-        """Determines whether or not to update a cell.
-
-        Parameters
-        ----------
-        cell : Cell
-            A preexisting cell from the archive.
-
-        Returns
-        -------
-        bool
-            Indication of whether or not the current emulator state improves upon the existing cell state.
-        """
-        new = cell.visit()
-        return new or self.reward > cell.reward or self.reward == cell.reward and self.length < cell.length
-
-    def act(self, render=False):
-        """Perform one emulator step.
-
-        Parameters
-        ----------
-        render : bool
-            Whether or not to render the frame following the emulator step.
-
-        Returns
-        -------
-        numpy.ndarray
-            observation
-
-        float
-            reward
-
-        bool:
-            terminal
-
-        dict:
-            info
-        """
-        if np.random.random() > self.repeat:
-            self.action = self.random()
-
-        observation, reward, terminal, info = self.env.step(self.action)
-        self.reward += reward
-        self.length += 1
-        self.frames += 1
-        self.highscore = max(self.highscore, self.reward)
-
-        if render:
-            self.env.render()
-
-        if terminal:
-            return observation, reward, terminal, info
-
-        cell = self.cellfn(observation)
-        code = self.hashfn(cell)
-        cell = self.archive[code]
-
-        self.trajectory.act(self.action)
-
-        if self.update(cell):
-            if hasattr(cell, 'code'):
-                cell.node.remove()
-
-            cell.node = self.trajectory.node
-            self.trajectory.node.assign(code)
-
-            cell.setstate(self.getstate())
-            self.discovered += 1
-
-        return observation, reward, terminal, info
-
-    def run(self,
-            render=False,
-            debug=False,
-            delay=0.01,
-            return_states=False,
-            max_frames=np.inf,
-            return_traj=False):
-        """Run a full iteration of the algorithm.
-
-        Parameters
-        ----------
-        render : bool
-            Whether or not to render this iteration.
-        debug : bool
-            Whether or not to apply a delay to slow down rendering
-        delay : float
-            Delay in seconds between frames rendering in debug mode
-        return_states : bool
-            Whether to return the observations throughout this iteration
-        return_traj : bool
-            Whether to also return the frames emulated when returning in 'trajectory' mode
-
-        Returns
-        -------
-        list
-            list of numpy.ndarray observations, if return_states or return_traj is True
-        NoneType
-            otherwise
-        """
-        self.discovered = 0
-
-        if return_states:
-            observations = []
-
-        for i in range(self.nsteps):
-            observation, reward, terminal, info = self.act(render)
-
-            if return_states:
-                observations.append(observation)
-
-            if terminal or self.frames == max_frames:
-                break
-
-            if debug:
-                sleep(delay)
-
-        if self.discovered:
-            self.archive[self.restore_code].led_to_improvement()
-
-        self.iterations += 1
-
-        traj = self.go()
-
-        if return_traj:
-            return observations + traj
-
-        if return_states:
-            return observations
-
-    def go(self):
-        codes = [*self.archive]
-        probs = np.array([cell.score for cell in self.archive.values()])
-        probs = probs / probs.sum()
-
-        restore_code = np.random.choice(codes, p = probs)
-        restore_cell = self.archive[restore_code]
-        self.restore_code = restore_code
-
-        return list(self.restore(restore_cell))
-
-    def run_for(self,
-                duration,
-                verbose=1,
-                units='iterations',
-                renderfn=lambda iteration: False,
-                delimeter=' ',
-                separator=True,
-                debug=False,
-                delay=0.01,
-                desc='Running',
-                **kwargs):
-        """Run algorithm for a certain duration
-
-        Parameters
-        ----------
-        duration : int
-            Duration to run algorithm.
-        verbose : int
-            Verbosity of printout.
-        units : str
-            Units indicating how to interpret duration, ie. 'iterations' or 'frames'
-        renderfn : callable
-            Function that takes the current iteration and returns a boolean indicating whether to render.
-        debug : bool
-            Whether or not to apply a delay to slow down rendering
-        delay : float
-            Delay in seconds between frames rendering in debug mode
-        desc : str
-            Description for progress bar. Defaults to 'Running'.
-        """
-        ensure_type(verbose, int, 'verbose', 'logging verbosity')
-        ensure_range(verbose, int, 'verbose', 'logging verbosity', 0, 2)
-        ensure_from(units, ['iterations', 'frames'], 'units', 'units of duration')
-
-        progress = Progress(
-            SpinnerColumn(),
-            "[progress.description]{task.description}",
-            BarColumn(),
-            "[progress.percentage]{task.percentage:>3.0f}%",
-            TimeRemainingColumn(),
-            "{task.completed} of {task.total} %s" % units
-        )
-
-        if units == 'iterations':
-            max_frames = np.inf
-        else:
-            max_frames = duration
-
-        with progress:
-            task = progress.add_task(desc, total = duration)
-            iteration = 0
-
-            while not progress.finished:
-                render = renderfn(iteration)
-                self.run(render, debug=debug, delay=delay, max_frames=max_frames)
-
-                if units == 'iterations':
-                    progress.advance(task)
-                else:
-                    progress.update(task, completed = self.frames, refresh = True)
-
-                self.log(verbose, progress.console, delimeter, separator)
-                iteration += 1
-
-    def save(self, path):
-        """Save all data representing the current state of the algorithm.
-
-        * RAM states
-        * PYTHONHASHSEED
-        * Trajectories
-        * Algorithm variables
-        * Cell metadata, ie. counts and the like
-
-        All of this data is stored as efficiently as possible,
-        compressed in .tar.gz archives, and can be restored using
-        the :func:`~load()` function.
-
-        Parameters
-        ----------
-        path : str
-            Path to save information. Creates the directory if it does not already exist.
-
-        Returns
-        -------
-        bool
-            Whether the operation was successful.
-        """
-        try:
-            # Make the save directory if it does not already exist
-            if not os.path.exists(path):
-                os.mkdir(path)
-
-            # Write PYTHONHASHSEED to file
-            with open(os.path.join(path, '.PYTHONHASHSEED'), 'w') as f:
-                f.write(str(self.hashseed))
-
-            states = os.path.join(path, 'ram')
-            trajectories = os.path.join(path, 'trajectory')
-
-            # Make directories
-            os.mkdir(states)
-            os.mkdir(trajectories)
-
-            # Save emulator ram states and action trajectories to compressed .npy.gz archives
-            # Collect archive data
-            data = {}
-            for code, cell in self.archive.items():
-                with gzip.GzipFile(os.path.join(states, f'{code}.npy.gz'), 'w') as f:
-                    np.save(f, cell.ram)
-
-                with gzip.GzipFile(os.path.join(trajectories, f'{code}.npy.gz'), 'w') as f:
-                    np.save(f, np.array(self.trajectory.get_trajectory(cell.node)))
-                data[code] = cell.save()
-
-            # Save archive data
-            with open(os.path.join(path, 'exploration.json'), 'w') as f:
-                json.dump(data, f)
-
-            # Save vars
-            with open(os.path.join(path, 'vars.json'), 'w') as f:
-                json.dump(vars(self), f)
-
-            # Make .tar.gz archives for directories
-            shutil.make_archive(os.path.join(path, 'ram'), 'gztar', states)
-            shutil.make_archive(os.path.join(path, 'trajectory'), 'gztar', trajectories)
-
-            # Remove directories
-            shutil.rmtree(states)
-            shutil.rmtree(trajectories)
-
-            return True
-        except:
-            return False
-
-    def load(self, path, overwrite=True):
-        """Restores data saved with :func:`~save()`
-
-        Parameters
-        ----------
-        path : str
-            Path to save information. Creates the directory if it does not already exist.
-        overwrite : bool
-            Whether to overwrite completely or merge with existing data
-
-        Returns
-        -------
-        bool
-            Whether the operation was successful.
-        """
-        if overwrite:
-            self.archive = Archive()
-            self.trajectory = LinkedTree()
-
-        try:
-            # Load archive data
-            with open(os.path.join(path, 'exploration.json'), 'r') as f:
-                archive = json.load(f)
-
-            # Load vars
-            with open(os.path.join(path, 'vars.json'), 'r') as f:
-                meta = json.load(f)
-
-                self.cellfn = types.FunctionType(marshal.loads(meta['cellfn']), globals(), 'cellfn')
-                self.hashfn = types.FunctionType(marshal.loads(meta['hashfn']), globals(), 'hashfn')
-
-                self.repeat = meta['repeat']
-                self.nsteps = meta['nsteps']
-                self.frames = meta['frames']
-                self.method = meta['method']
-
-                self.iterations = meta['iterations']
-                self.highscore = meta['highscore']
-
-                if self.env.env_id != meta['env']:
-                    self.close()
-                    self.env = name2env[meta['env']]
-
-                self.env.seed(meta['seed'])
-                self.seed = meta['seed']
-
-            # Update archive with file data
-            for code, info in archive.items():
-                self.archive[int(code)].load(info)
-
-            # Update PYTHONHASHSEED
-            with open(os.path.join(path, '.PYTHONHASHSEED'), 'r') as f:
-                self.setseed(int(f.read()))
-
-            # Load emulator ram states to their corresponding cells
-            with tarfile.open(os.path.join(path, 'ram.tar.gz'), 'r:gz') as tar:
-                for member in tar.getmembers():
-                    f = tar.extractfile(member)
-                    if f is not None:
-                        code = int(member.name[2:-7])
-                        data = gzip.decompress(f.read())
-                        stream = io.BytesIO(data)
-                        ram = np.load(stream)
-                        self.archive[code].ram = ram
-
-            # Build trajectory tree
-            with tarfile.open(os.path.join(path, 'trajectory.tar.gz'), 'r:gz') as tar:
-                for member in tar.getmembers():
-                    f = tar.extractfile(member)
-                    if f is not None:
-                        code = int(member.name[2:-7])
-                        data = gzip.decompress(f.read())
-                        stream = io.BytesIO(data)
-                        trajectory = np.load(stream)
-                        self.archive[code].length = len(trajectory)
-                        self.archive[code].node = self.trajectory.add(trajectory, code)
-
-            return True
-        except:
-            return False
-
-    def refresh(self):
-        """Refresh the archive"""
-        new = Archive()
-        for old_code, cell in self.archive.items():
-            self.env.restore_full_state(cell.ram)
-            new_code = self.hashfn(self.cellfn(self.env.step(0)[0]))
-            if new_code in new:
-                if cell.beats(new[new_code]):
-                    cell.node.assign(new_code)
-                    new[new_code] = cell
-            else:
-                cell.node.assign(new_code)
-                new[new_code] = cell
-        self.archive = new
-        self.go()
-
-    def close(self):
-        """Close the environment"""
-        self.env.close()
+for i, (recon_loss, latent_loss, avg_mse, lr) in enumerate(model.train_epoch(0, loader, optimizer, scheduler, device, sample_path)):
+    print (f'updates: {updates}; mse: {recon_loss:.5f}; latent: {latent_loss:.5f}; avg mse: {avg_mse:.5f}; lr: {lr:.5f}')
+    print (goexplore.report())
+    if i % 1000 == 0:
+        torch.save(model.state_dict(), os.path.join(checkpoint_path, 'vqvae_%s.pt' % i))
