@@ -2,15 +2,11 @@ from experiment import Experiment
 from goexplore.wrappers import *
 from goexplore.utils import *
 from rich.progress import *
-from hashlib import md5
 import json
 import os
 
 def renderfn(iterations):
     return False
-
-def hashfn(cell):
-    return md5(cell.data.tobytes()).hexdigest()
 
 EXPERIMENTS = 20
 DURATION = 300000
