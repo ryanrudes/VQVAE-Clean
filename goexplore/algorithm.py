@@ -113,7 +113,7 @@ class GoExplore:
             RAM state
 
         """
-        return self.env.env.clone_full_state()
+        return self.env.clone_full_state()
 
     def restore(self, cell):
         """Restores to a chosen cell
@@ -130,7 +130,7 @@ class GoExplore:
         self.env.reset()
 
         if self.method == 'ram':
-            self.env.env.restore_full_state(ram)
+            self.env.restore_full_state(ram)
         else:
             trajectory = self.trajectory.get_trajectory()
             while trajectory:
@@ -162,7 +162,6 @@ class GoExplore:
                    nsteps=100,
                    seed=42,
                    method='ram',
-                   saveobs=False,
                    **kwargs):
         """Initialize the algorithm.
 
@@ -180,10 +179,7 @@ class GoExplore:
             Environment seed.
         method : str
             Method for return. Either 'ram' (default) or 'trajectory'.
-        saveobs : bool
-            Whether to save observations for each cell
         """
-        self.saveobs = saveobs
         self.cellfn = cellfn
         self.hashfn = hashfn
         self.repeat = repeat
@@ -215,9 +211,6 @@ class GoExplore:
         self.trajectory = LinkedTree()
 
         cell = self.archive[code]
-
-        if saveobs:
-            cell.observation = observation
 
         cell.node = self.trajectory.node
         self.trajectory.node.assign(code)
@@ -291,9 +284,6 @@ class GoExplore:
             cell.node = self.trajectory.node
             self.trajectory.node.assign(code)
 
-            if self.saveobs:
-                cell.observation = observation
-
             cell.setstate(self.getstate())
             self.discovered += 1
 
@@ -350,21 +340,24 @@ class GoExplore:
 
         self.iterations += 1
 
-        codes = [*self.archive]
-        probs = np.array([cell.score for cell in self.archive.values()])
-        probs = probs / probs.sum()
-
-        restore_code = np.random.choice(codes, p = probs)
-        restore_cell = self.archive[restore_code]
-
-        traj = list(self.restore(restore_cell))
-        self.restore_code = restore_code
+        traj = self.go()
 
         if return_traj:
             return observations + traj
 
         if return_states:
             return observations
+
+    def go(self):
+        codes = [*self.archive]
+        probs = np.array([cell.score for cell in self.archive.values()])
+        probs = probs / probs.sum()
+
+        restore_code = np.random.choice(codes, p = probs)
+        restore_cell = self.archive[restore_code]
+        self.restore_code = restore_code
+
+        return list(self.restore(restore_cell))
 
     def run_for(self,
                 duration,
@@ -584,9 +577,9 @@ class GoExplore:
     def refresh(self):
         """Refresh the archive"""
         new = Archive()
-        for code, cell in self.archive.items():
-            self.env.env.restore_full_state(cell.ram)
-            new_code = self.hashfn(self.cellfn(cell.observation))
+        for old_code, cell in self.archive.items():
+            self.env.restore_full_state(cell.ram)
+            new_code = self.hashfn(self.cellfn(self.env.step(0)[0])))
             if new_code in new:
                 if cell.beats(new[new_code]):
                     cell.node.assign(new_code)
@@ -595,6 +588,7 @@ class GoExplore:
                 cell.node.assign(new_code)
                 new[new_code] = cell
         self.archive = new
+        self.go()
 
     def close(self):
         """Close the environment"""
