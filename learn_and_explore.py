@@ -4,7 +4,6 @@ from goexplore.utils import *
 from vqvae import VQVAE
 from rich import print
 from time import time
-import itertools
 import random
 import os
 
@@ -32,13 +31,19 @@ def encode_fn():
             x = x.unsqueeze(0)
             x = x.to(device)
 
-            _, _, _, encoded, _ = model.encode(x)
+            _, _, _, id_t, id_b = model.encode(x)
 
-        encoded = encoded.cpu().numpy()[0]
+        id_t = id_t.cpu().numpy()
+        id_b = id_b.cpu().numpy()
+
         model.train()
-        return encoded
+
+        return id_t, id_b
 
     return model, encode
+
+def hashfn(x):
+    return hash(x[0].data.tobytes() + x[1].data.tobytes())
 
 def data_stream():
     global updates
@@ -55,16 +60,17 @@ def data_stream():
         n = FRAMES / (goexplore.frames / iteration)
         m = (2 * UPDATES - 2 * a * n) / (n ** 2 - n)
         y = int(a - m * iteration)
-        updates += y
 
         observations = [cv2.resize(x, (160, 160), interpolation = cv2.INTER_AREA) for x in observations]
-        observations = itertools.cycle(observations)
 
-        for i in range(y * BATCH_SIZE):
-            x = next(observations)
-            x = transform(x)
-            x = x.to(device)
-            yield x, 0
+        for i in range(y):
+            random.shuffle(observations)
+            for x in observations[:BATCH_SIZE]:
+                x = transform(x)
+                x = x.to(device)
+                yield x, 0
+
+            updates += 1
 
         if iteration % 10 == 0:
             goexplore.refresh()
@@ -82,7 +88,7 @@ BATCH_SIZE = 128
 env = Qbert()
 goexplore = GoExplore(env)
 model, cellfn = encode_fn()
-goexplore.initialize(cellfn = cellfn, mode = 'trajectory')
+goexplore.initialize(cellfn = cellfn, hashfn = hashfn, mode = 'trajectory', saveobs = True)
 
 dataset = ObservationDataset()
 loader = DataLoader(dataset, batch_size = BATCH_SIZE)
