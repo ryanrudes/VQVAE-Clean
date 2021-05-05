@@ -107,7 +107,10 @@ class Quantizer(nn.Module):
         diff = (quantize.detach() - input).pow(2).mean()
         quantize = input + (quantize - input).detach()
 
-        return quantize, diff, embed_ind
+        e_mean = torch.mean(embed_onehot, dim=0)
+        perplexity = torch.exp(-torch.sum(e_mean * torch.log(e_mean + 1e-10)))
+
+        return quantize, diff, embed_ind, perplexity
 
     def embed_code(self, embed_id):
         return F.embedding(embed_id, self.embed.transpose(0, 1))
@@ -197,7 +200,7 @@ class VQVAE(nn.Module):
         n_res_channel=32,
         embed_dim=64,
         n_embed=4,
-        decay=0.99,
+        decay=0.9,
     ):
         super().__init__()
 
@@ -233,7 +236,7 @@ class VQVAE(nn.Module):
         enc_t = self.enc_t(enc_b)
 
         quant_t = self.quantize_conv_t(enc_t).permute(0, 2, 3, 1)
-        quant_t, diff_t, id_t = self.quantize_t(quant_t)
+        quant_t, diff_t, id_t, perplexity_t = self.quantize_t(quant_t)
         quant_t = quant_t.permute(0, 3, 1, 2)
         diff_t = diff_t.unsqueeze(0)
 
@@ -241,9 +244,12 @@ class VQVAE(nn.Module):
         enc_b = torch.cat([dec_t, enc_b], 1)
 
         quant_b = self.quantize_conv_b(enc_b).permute(0, 2, 3, 1)
-        quant_b, diff_b, id_b = self.quantize_b(quant_b)
+        quant_b, diff_b, id_b, perplexity_b = self.quantize_b(quant_b)
         quant_b = quant_b.permute(0, 3, 1, 2)
         diff_b = diff_b.unsqueeze(0)
+
+        self.perplexity_t = perplexity_t.cpu().numpy()
+        self.perplexity_b = perplexity_b.cpu().numpy()
 
         return quant_t, quant_b, diff_t + diff_b, id_t, id_b
 
