@@ -52,7 +52,6 @@ class Cell:
         self.reset_selection_counts()
 
     def led_to_improvement(self):
-        self.times_chosen_since_new = 0
         self.reset_selection_counts()
 
     def reset_selection_counts(self):
